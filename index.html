@@ -358,6 +358,7 @@ const GLOBAL_KEY = 'dossier_ef_global'; // escola + logo (partilhados)
 const STATE_PREFIX = 'dossier_ef_v2__'; // + "2025/2026"
 
 function isMobile(){ return window.innerWidth <= 600; }
+let mCurrentTab = null; // null = home mobile
 
 function loadGlobal(){
   try{ return JSON.parse(localStorage.getItem(GLOBAL_KEY))||{}; }catch{ return{}; }
@@ -468,7 +469,11 @@ function save(){
 }
 
 function render(){
-  if(isMobile()){ renderMobile(); return; }
+  if(isMobile()){
+    // renderMobile pode ainda não estar definida na primeira chamada
+    if(typeof renderMobile === 'function') renderMobile();
+    return;
+  }
   const app=document.getElementById('app');
   app.innerHTML=`${renderHeader()}<div class="body">${renderSidebar()}<div class="main" id="main-content">${renderTab()}</div></div>${modal?renderModal():''}`;
   attachEvents();
@@ -3341,8 +3346,6 @@ function getCurrentWeekDates(){
   return dates;
 }
 
-render();
-
 // ── MOBILE LOGIC ─────────────────────────────────────────────────────────────
 const MOBILE_ITEMS = [
   {id:'painel',      icon:'🏠', label:'Painel',       sub:'Visão geral das turmas'},
@@ -3353,8 +3356,6 @@ const MOBILE_ITEMS = [
   {id:'sumarios',    icon:'📝', label:'Sumários',      sub:'Sumários e faltas'},
   {id:'avaliacao',   icon:'🎯', label:'Avaliação',     sub:'Fitescola e notas'},
 ];
-
-let mCurrentTab = null; // null = home
 
 function renderMobile(){
   if(!isMobile()) return;
@@ -3489,13 +3490,14 @@ function renderMobile(){
   }
 }
 
-// Iniciar mobile se necessário
+// ── ARRANQUE ─────────────────────────────────────────────────────────────────
 if(isMobile()) renderMobile();
+else render();
 
 // Resize: trocar entre desktop e mobile
 window.addEventListener('resize',()=>{
   if(isMobile()) renderMobile();
-  else { render(); }
+  else render();
 });
 
 // Registar Service Worker (PWA)
