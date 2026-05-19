@@ -1884,56 +1884,54 @@ function renderCalendario(){
   const cal=S.calendario;
   return `<div>
     <div class="section-title">Calendário Letivo</div>
-    <div class="grid-2" style="gap:20px;align-items:start">
-      <div>
-        <div class="card">
-          <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:14px">📅 Datas Principais</div>
-          <div class="cal-section"><div class="cal-label">Início do Ano Letivo</div>
-            <input type="date" class="cal-input" id="calInicio" value="${cal.inicio||''}"></div>
-          <div class="cal-section"><div class="cal-label">Final do 1º Semestre</div>
-            <input type="date" class="cal-input" id="calFim1s" value="${cal.fim1s||''}"></div>
-          <div style="font-size:12px;font-weight:700;color:var(--navy);margin:14px 0 8px">Final do 2º Semestre por Ano</div>
-          ${ANOS_ESC.map(a=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <div style="font-size:12px;font-weight:600;color:var(--gray);min-width:32px">${a}</div>
-            <input type="date" class="cal-input" data-ano="${a}" value="${(cal.fimAnos&&cal.fimAnos[a])||''}" style="flex:1">
-          </div>`).join('')}
-          <button class="btn btn-primary" style="width:100%;margin-top:8px" id="saveCalBtn">💾 Guardar Calendário</button>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:14px">📅 Datas Principais</div>
+        <div class="cal-section"><div class="cal-label">Início do Ano Letivo</div>
+          <input type="date" class="cal-input" id="calInicio" value="${cal.inicio||''}"></div>
+        <div class="cal-section"><div class="cal-label">Final do 1º Semestre</div>
+          <input type="date" class="cal-input" id="calFim1s" value="${cal.fim1s||''}"></div>
+        <div style="font-size:12px;font-weight:700;color:var(--navy);margin:14px 0 8px">Final do 2º Semestre por Ano</div>
+        ${ANOS_ESC.map(a=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:600;color:var(--gray);min-width:32px">${a}</div>
+          <input type="date" class="cal-input" data-ano="${a}" value="${(cal.fimAnos&&cal.fimAnos[a])||''}" style="flex:1">
+        </div>`).join('')}
+        <button class="btn btn-primary" style="width:100%;margin-top:8px" id="saveCalBtn">💾 Guardar Calendário</button>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:14px;font-weight:700;color:var(--navy)">🚫 Feriados</div>
+          <button class="btn btn-sm" id="reporFeriadosBtn" title="Repõe os feriados nacionais de Portugal 2025-2026 + feriado municipal de Setúbal">↺ Repor feriados oficiais</button>
         </div>
-        <div class="card" style="margin-top:16px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div style="font-size:14px;font-weight:700;color:var(--navy)">🚫 Feriados</div>
-            <button class="btn btn-sm" id="reporFeriadosBtn" title="Repõe os feriados nacionais de Portugal 2025-2026 + feriado municipal de Setúbal">↺ Repor feriados oficiais</button>
-          </div>
-          <div style="display:flex;gap:8px;margin-bottom:12px">
-            <input type="date" class="cal-input" id="novoFeriado" style="flex:1">
-            <button class="btn btn-primary" id="addFeriadoBtn">+ Adicionar</button>
-          </div>
-          <div class="feriados-list">${S.feriados.map(f=>`<span class="feriado-tag">${fmtDate(f)}<button data-feriado="${f}" title="Remover">×</button></span>`).join('')}</div>
-          ${S.feriados.length===0?'<div style="color:var(--gray);font-size:12px">Nenhum feriado adicionado.</div>':''}
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input type="date" class="cal-input" id="novoFeriado" style="flex:1">
+          <button class="btn btn-primary" id="addFeriadoBtn">+ Adicionar</button>
         </div>
-        <div class="card" style="margin-top:16px">
-          <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px">⏸️ Pausas Letivas</div>
-          <p style="font-size:11px;color:var(--gray);margin-bottom:10px">Defina um intervalo de datas (início e fim inclusive). Todos os dias desse intervalo serão tratados como não letivos.</p>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
-            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:160px">
-              <span style="font-size:11px;font-weight:600;color:var(--gray);white-space:nowrap">De</span>
-              <input type="date" class="cal-input" id="pausaInicio" style="flex:1">
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:160px">
-              <span style="font-size:11px;font-weight:600;color:var(--gray);white-space:nowrap">Até</span>
-              <input type="date" class="cal-input" id="pausaFim" style="flex:1">
-            </div>
-            <button class="btn btn-primary" id="addPausaBtn">+ Adicionar</button>
+        <div class="feriados-list">${S.feriados.map(f=>`<span class="feriado-tag">${fmtDate(f)}<button data-feriado="${f}" title="Remover">×</button></span>`).join('')}</div>
+        ${S.feriados.length===0?'<div style="color:var(--gray);font-size:12px">Nenhum feriado adicionado.</div>':''}
+      </div>
+      <div class="card">
+        <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px">⏸️ Pausas Letivas</div>
+        <p style="font-size:11px;color:var(--gray);margin-bottom:10px">Defina um intervalo de datas (início e fim inclusive). Todos os dias desse intervalo serão tratados como não letivos.</p>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:160px">
+            <span style="font-size:11px;font-weight:600;color:var(--gray);white-space:nowrap">De</span>
+            <input type="date" class="cal-input" id="pausaInicio" style="flex:1">
           </div>
-          <div class="feriados-list">
-            ${(S.pausasIntervalos||[]).map((p,i)=>`
-              <span class="feriado-tag" style="background:var(--amber2);color:var(--amber)">
-                ${fmtDate(p.inicio)} → ${fmtDate(p.fim)}
-                <button data-pausa="${i}" title="Remover" style="color:var(--amber)">×</button>
-              </span>`).join('')}
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:160px">
+            <span style="font-size:11px;font-weight:600;color:var(--gray);white-space:nowrap">Até</span>
+            <input type="date" class="cal-input" id="pausaFim" style="flex:1">
           </div>
-          ${!(S.pausasIntervalos&&S.pausasIntervalos.length)?'<div style="color:var(--gray);font-size:12px">Nenhuma pausa adicionada.</div>':''}
+          <button class="btn btn-primary" id="addPausaBtn">+ Adicionar</button>
         </div>
+        <div class="feriados-list">
+          ${(S.pausasIntervalos||[]).map((p,i)=>`
+            <span class="feriado-tag" style="background:var(--amber2);color:var(--amber)">
+              ${fmtDate(p.inicio)} → ${fmtDate(p.fim)}
+              <button data-pausa="${i}" title="Remover" style="color:var(--amber)">×</button>
+            </span>`).join('')}
+        </div>
+        ${!(S.pausasIntervalos&&S.pausasIntervalos.length)?'<div style="color:var(--gray);font-size:12px">Nenhuma pausa adicionada.</div>':''}
       </div>
       <div class="card">
         <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px">🗓️ Horário Semanal Base</div>
