@@ -3202,7 +3202,7 @@ async function fetchWeatherWeek(weekDates){
 
 // Calcula qual a semana actual (2ª a 6ª) para comparação
 function getCurrentWeekDates(){
-  const today = new Date()
+  const today = new Date();
   const day = today.getDay(); // 0=Dom
   const monday = new Date(today);
   monday.setDate(today.getDate() + (day===0 ? -6 : 1-day));
