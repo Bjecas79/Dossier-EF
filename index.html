@@ -270,6 +270,52 @@
       flex:1;padding:9px 6px;border-radius:8px;font-size:12px;font-weight:600;
       cursor:pointer;text-align:center;box-sizing:border-box
     }
+
+    /* ── Plano Semanal mobile ── */
+    .m-section-content .schedule-table{
+      table-layout:fixed;
+      width:100%;
+      font-size:9px
+    }
+    .m-section-content .schedule-table th{
+      padding:4px 2px;
+      font-size:9px;
+      line-height:1.2;
+      word-break:break-word
+    }
+    .m-section-content .schedule-table td{
+      min-width:0;
+      padding:0
+    }
+    .m-section-content .time-col{
+      width:28px !important;
+      min-width:0;
+      font-size:8px;
+      padding:3px 2px;
+      white-space:normal;
+      word-break:break-all;
+      line-height:1.2
+    }
+    .m-section-content .schedule-table th:first-child{
+      width:28px
+    }
+    .m-section-content .aula-cell{
+      padding:3px 2px;
+      min-height:38px;
+      font-size:8px
+    }
+    .m-section-content .aula-turma{font-size:8px;font-weight:700}
+    .m-section-content .aula-espaco{font-size:7px}
+    .m-section-content .aula-modal{font-size:7px}
+    .m-section-content .aula-feriado{font-size:7px;min-height:38px}
+    /* Esconder ícone de meteorologia no mobile para poupar espaço */
+    .m-section-content .aula-cell [title*="°"]{display:none}
+    /* Navegação de semanas */
+    .m-section-content .week-nav,
+    .m-section-content .filter-bar{flex-wrap:wrap;gap:6px}
+    .m-section-content .filter-bar .section-title{font-size:14px}
+    /* Padding da secção reduzido para ganhar espaço */
+    .m-section-content{padding:8px}
   }
 </style>
 </head>
@@ -1732,15 +1778,21 @@ function renderSemanal(){
       </div>
     </div>
     ${!semana?`<div class="empty-msg">Configure o Calendário Letivo para ver as semanas</div>`:`
-    <div style="overflow-x:auto">
+    <div style="${isMobile()?'':'overflow-x:auto'}">
     <table class="schedule-table">
-      <thead><tr><th style="width:90px">Hora</th>${DIAS.map((d,i)=>{
+      <thead><tr><th style="${isMobile()?'width:28px':'width:90px'}">${isMobile()?'H':'Hora'}</th>${DIAS.map((d,i)=>{
         const dayDate = semana[i];
         const wx = isCurrentWeek && weatherCache[dayDate];
+        if(isMobile()){
+          // Abreviatura 3 letras + dia/mês
+          const abrev = d.slice(0,3);
+          const [,mm,dd] = dayDate.split('-');
+          return `<th style="padding:3px 1px">${abrev}<br><small style="font-weight:400;opacity:0.8">${dd}/${mm}</small>`;
+        }
         return `<th>${d}<br><small style="font-weight:400;opacity:0.8">${fmtDate(dayDate)}</small>${wx?`<br><span title="${wx.desc} · ${wx.tempMin}°–${wx.tempMax}°C" style="font-size:22px;cursor:default;line-height:1.4">${wx.icon}</span>`:''}`;
       }).join('')}</tr></thead>
       <tbody>${BLOCOS.map((bloco,bi)=>`<tr>
-        <td class="time-col">${bloco}</td>
+        <td class="time-col">${isMobile() ? bloco.split('–')[0] : bloco}</td>
         ${DIAS.map((d,di)=>{
           const slot=`${di}_${bi}`;
           const aula=S.horario[slot];
