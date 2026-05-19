@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dossier EF — Professor de Educação Física</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a2d4a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dossier EF">
+<link rel="apple-touch-icon" href="icons/icon-192x192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
 <style>
@@ -3196,7 +3202,7 @@ async function fetchWeatherWeek(weekDates){
 
 // Calcula qual a semana actual (2ª a 6ª) para comparação
 function getCurrentWeekDates(){
-  const today = new Date();
+  const today = new Date()
   const day = today.getDay(); // 0=Dom
   const monday = new Date(today);
   monday.setDate(today.getDate() + (day===0 ? -6 : 1-day));
@@ -3210,6 +3216,15 @@ function getCurrentWeekDates(){
 }
 
 render();
+
+// Registar Service Worker (PWA)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log('Service Worker registado ✓'))
+      .catch(e => console.warn('SW erro:', e));
+  });
+}
 </script>
 </body>
 </html>
