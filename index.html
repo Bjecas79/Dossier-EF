@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="icons/icon-192x192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f5;color:#1a2332;height:100vh;display:flex;flex-direction:column;overflow:hidden}
@@ -168,7 +169,36 @@
     .main{padding:0;height:100vh;overflow-y:auto}
   }
 
-  /* ── MOBILE HOME ──────────────────────────────────────── */
+  /* ── LOGIN ──────────────────────────────────────────────── */
+  .login-overlay{position:fixed;inset:0;background:var(--navy);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:0}
+  .login-box{background:#fff;border-radius:16px;padding:36px 32px 28px;width:360px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,0.35)}
+  .login-logo{font-size:32px;font-weight:800;color:var(--blue);letter-spacing:-1px;margin-bottom:4px}
+  .login-sub{font-size:13px;color:var(--gray);margin-bottom:28px}
+  .login-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:20px}
+  .login-tab{flex:1;padding:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;color:var(--gray);border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s}
+  .login-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+  .login-field{margin-bottom:14px}
+  .login-field label{display:block;font-size:11px;font-weight:600;color:var(--gray);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px}
+  .login-field input{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;outline:none;transition:border 0.15s;font-family:inherit}
+  .login-field input:focus{border-color:var(--blue)}
+  .login-btn{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;transition:background 0.15s}
+  .login-btn:hover{background:var(--blue2)}
+  .login-btn:disabled{background:#93c5fd;cursor:not-allowed}
+  .login-msg{font-size:12px;margin-top:10px;padding:8px 12px;border-radius:6px;text-align:center}
+  .login-msg.error{background:var(--red2);color:var(--red)}
+  .login-msg.success{background:var(--green2);color:var(--green)}
+  .login-footer{margin-top:20px;text-align:center;font-size:11px;color:var(--gray)}
+  /* Barra de utilizador no header */
+  .user-bar{display:flex;align-items:center;gap:8px;margin-left:12px}
+  .user-email{font-size:11px;color:rgba(255,255,255,0.6);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .logout-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;transition:all 0.15s}
+  .logout-btn:hover{background:rgba(255,255,255,0.2);color:#fff}
+  /* Indicador de sync */
+  .sync-indicator{position:fixed;bottom:16px;right:16px;background:var(--navy);color:#fff;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:600;z-index:500;display:none;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.2)}
+  .sync-indicator.show{display:flex}
+  .sync-dot{width:8px;height:8px;border-radius:50%;background:#60a5fa;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
   .mobile-shell{display:none}
   @media(max-width:600px){
     .app{display:none!important}
@@ -320,6 +350,47 @@
 </style>
 </head>
 <body>
+
+<!-- ── LOGIN OVERLAY ──────────────────────────────────────── -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">DOSSIER EF</div>
+    <div class="login-sub">Professor de Educação Física</div>
+    <div class="login-tabs">
+      <button class="login-tab active" id="tabEntrar" onclick="setLoginTab('entrar')">Entrar</button>
+      <button class="login-tab" id="tabRegistar" onclick="setLoginTab('registar')">Criar conta</button>
+    </div>
+    <div id="loginForm">
+      <div class="login-field">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="professor@escola.pt" autocomplete="email">
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div id="loginNameField" style="display:none" class="login-field">
+        <label>Nome (opcional)</label>
+        <input type="text" id="loginName" placeholder="Prof. João Silva">
+      </div>
+      <button class="login-btn" id="loginBtn" onclick="doLogin()">Entrar</button>
+      <div id="loginMsg"></div>
+      <div style="margin-top:14px;text-align:center">
+        <button onclick="doResetPassword()" style="background:none;border:none;color:var(--blue);font-size:12px;cursor:pointer;text-decoration:underline" id="resetPwdBtn">Esqueci a password</button>
+      </div>
+    </div>
+    <div class="login-footer">
+      Desenvolvido por <span style="font-family:'Dancing Script',cursive;font-size:16px;color:#2563eb">Hugo Simões</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── SYNC INDICATOR ──────────────────────────────────────── -->
+<div class="sync-indicator" id="syncIndicator">
+  <div class="sync-dot"></div>
+  <span id="syncMsg">A sincronizar…</span>
+</div>
+
 <div class="app" id="app"></div>
 
 <!-- ── MOBILE SHELL ──────────────────────────────────────── -->
@@ -327,7 +398,10 @@
   <div class="m-header">
     <div class="m-header-top">
       <div class="m-logo">DOSSIER EF</div>
-      <select class="m-year" id="mYearSelect"></select>
+      <div style="display:flex;align-items:center;gap:8px">
+        <select class="m-year" id="mYearSelect"></select>
+        <button onclick="doLogout()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);padding:5px 9px;border-radius:6px;font-size:11px;cursor:pointer">Sair</button>
+      </div>
     </div>
     <input class="m-school" id="mSchoolName" placeholder="Nome da escola" />
   </div>
@@ -399,6 +473,46 @@ function calcCalendarioDefault(anoLetivo){
   };
 }
 
+// ── SUPABASE ──────────────────────────────────────────────────────────────────
+const SUPA_URL = 'https://thwovkwqxaugnterwzdm.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRod292a3dxeGF1Z250ZXJ3emRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMTk5OTIsImV4cCI6MjA5NDc5NTk5Mn0.qyWqQXhkaZQ3D0eAx7_7XmgICQu-oRsFznP2cCPWGAA';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let currentUser = null;
+let syncTimeout = null;
+
+function showSync(msg){ const el=document.getElementById('syncIndicator'); const m=document.getElementById('syncMsg'); if(el&&m){m.textContent=msg||'A sincronizar…';el.classList.add('show');} }
+function hideSync(){ setTimeout(()=>{ document.getElementById('syncIndicator')?.classList.remove('show'); }, 1200); }
+
+// ── Supabase: carregar dados do ano letivo
+async function supaLoad(anoLetivo){
+  if(!currentUser) return null;
+  try{
+    const {data,error}=await supa.from('dossier_data').select('data').eq('user_id',currentUser.id).eq('ano_letivo',anoLetivo).single();
+    if(error||!data) return null;
+    return data.data;
+  }catch{ return null; }
+}
+
+// ── Supabase: guardar dados (debounced)
+async function supaSave(s){
+  if(!currentUser) return;
+  showSync('A guardar na cloud…');
+  try{
+    const {error}=await supa.from('dossier_data').upsert({
+      user_id: currentUser.id,
+      ano_letivo: s.anoLetivo,
+      data: s,
+      updated_at: new Date().toISOString()
+    },{onConflict:'user_id,ano_letivo'});
+    if(error) throw error;
+    hideSync();
+  }catch(e){
+    showSync('⚠️ Erro ao guardar');
+    hideSync();
+  }
+}
+
 // ── Persistência por ano letivo ─────────────────────────────────────────────
 const GLOBAL_KEY = 'dossier_ef_global'; // escola + logo (partilhados)
 const STATE_PREFIX = 'dossier_ef_v2__'; // + "2025/2026"
@@ -412,15 +526,19 @@ function loadGlobal(){
 function saveGlobal(g){
   try{ localStorage.setItem(GLOBAL_KEY, JSON.stringify(g)); }catch{}
 }
-function stateKey(ano){ return STATE_PREFIX + ano; }
+function stateKey(ano){ return STATE_PREFIX + (currentUser?.id||'local') + '__' + ano; }
 function loadStateForYear(ano){
   try{ return JSON.parse(localStorage.getItem(stateKey(ano)))||null; }catch{ return null; }
 }
 function saveState(s){
   try{ localStorage.setItem(stateKey(s.anoLetivo), JSON.stringify(s)); }catch{}
-  // Actualizar globals
   const g=loadGlobal(); g.escola=s.escola; g.logo=s.logo; g.anoLetivo=s.anoLetivo;
   saveGlobal(g);
+  // Sync para Supabase com debounce de 2s
+  if(currentUser){
+    clearTimeout(syncTimeout);
+    syncTimeout=setTimeout(()=>supaSave(s), 2000);
+  }
 }
 
 function createFreshState(anoLetivo, escola, logo){
@@ -479,7 +597,7 @@ function loadState(){
   return s;
 }
 
-let S=loadState();
+let S = createFreshState('2025/2026'); // será substituído após login
 
 let currentTab='painel';
 let filterTurma='all';
@@ -538,6 +656,10 @@ function renderHeader(){
       <div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.1">
         <span style="font-size:10px;color:rgba(255,255,255,0.45);letter-spacing:0.5px;text-transform:uppercase">Desenvolvido por</span>
         <span style="font-family:'Dancing Script','Segoe Script','Comic Sans MS',cursive;font-size:28px;color:#93c5fd;letter-spacing:0.5px;white-space:nowrap;text-shadow:0 1px 6px rgba(147,197,253,0.25)">Hugo Simões</span>
+      </div>
+      <div class="user-bar" id="userBarDesktop">
+        <span class="user-email" id="userEmailDesktop"></span>
+        <button class="logout-btn" onclick="doLogout()">Sair</button>
       </div>
     </div>
   </div>`;
@@ -2432,14 +2554,17 @@ function attachEvents(){
   const sn=document.getElementById('schoolName');
   if(sn) sn.addEventListener('input',e=>{S.escola=e.target.value;save();});
   const ys=document.getElementById('yearSelect');
-  if(ys) ys.addEventListener('change',e=>{
+  if(ys) ys.addEventListener('change',async e=>{
     const novoAno=e.target.value;
     if(novoAno===S.anoLetivo) return;
     // Guardar estado actual
     saveState(S);
-    // Carregar (ou criar) estado do novo ano, preservando escola e logo
     const escola=S.escola; const logo=S.logo;
-    const novo=loadStateForYear(novoAno)||createFreshState(novoAno, escola, logo);
+    // Tentar carregar da Supabase primeiro
+    showSync('A carregar '+novoAno+'…');
+    let novo = await supaLoad(novoAno);
+    hideSync();
+    if(!novo) novo = loadStateForYear(novoAno)||createFreshState(novoAno, escola, logo);
     novo.escola=escola; novo.logo=logo;
     S=novo;
     currentTab='painel';
@@ -3420,12 +3545,19 @@ function renderMobile(){
       if(`${y}/${y+1}`===S.anoLetivo) o.selected=true;
       mYear.appendChild(o);
     }
-    mYear.addEventListener('change',e=>{
+    mYear.addEventListener('change',async e=>{
       const novo=e.target.value;
       if(novo===S.anoLetivo) return;
       if(confirm(`Mudar para o ano letivo ${novo}?\nOs dados do ano atual ficam guardados.`)){
+        const escola=S.escola; const logo=S.logo;
         const g=loadGlobal(); g.anoLetivo=novo; saveGlobal(g);
-        S=loadState(); mCurrentTab=null; currentTab='painel';
+        showSync('A carregar '+novo+'…');
+        let novoS = await supaLoad(novo);
+        hideSync();
+        if(!novoS) novoS = loadStateForYear(novo)||createFreshState(novo, escola, logo);
+        novoS.escola=escola; novoS.logo=logo;
+        S=novoS;
+        mCurrentTab=null; currentTab='painel';
         renderMobile();
       } else { mYear.value=S.anoLetivo; }
     });
@@ -3540,12 +3672,151 @@ function renderMobile(){
   }
 }
 
-// ── ARRANQUE ─────────────────────────────────────────────────────────────────
-if(isMobile()) renderMobile();
-else render();
+// ── LOGIN UI ──────────────────────────────────────────────────────────────────
+let loginMode = 'entrar'; // 'entrar' | 'registar'
+
+function setLoginTab(mode){
+  loginMode = mode;
+  document.getElementById('tabEntrar').classList.toggle('active', mode==='entrar');
+  document.getElementById('tabRegistar').classList.toggle('active', mode==='registar');
+  document.getElementById('loginBtn').textContent = mode==='entrar' ? 'Entrar' : 'Criar conta';
+  document.getElementById('loginNameField').style.display = mode==='registar' ? 'block' : 'none';
+  document.getElementById('resetPwdBtn').style.display = mode==='entrar' ? 'inline' : 'none';
+  document.getElementById('loginMsg').innerHTML = '';
+}
+
+function setLoginMsg(msg, type='error'){
+  const el=document.getElementById('loginMsg');
+  el.innerHTML=`<div class="login-msg ${type}">${msg}</div>`;
+}
+
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pw=document.getElementById('loginPassword').value;
+  const btn=document.getElementById('loginBtn');
+  if(!email||!pw){ setLoginMsg('Preenche o email e a password.'); return; }
+  btn.disabled=true; btn.textContent='…';
+  try{
+    let res;
+    if(loginMode==='entrar'){
+      res=await supa.auth.signInWithPassword({email,password:pw});
+    } else {
+      res=await supa.auth.signUp({email,password:pw});
+    }
+    if(res.error) throw res.error;
+    if(loginMode==='registar' && !res.data?.session){
+      setLoginMsg('✅ Conta criada! Verifica o email para confirmar e depois faz login.','success');
+      btn.disabled=false; btn.textContent='Criar conta';
+    }
+    // Se login ok, o onAuthStateChange trata do resto
+  }catch(e){
+    let msg=e.message||'Erro desconhecido';
+    if(msg.includes('Invalid login')) msg='Email ou password incorretos.';
+    if(msg.includes('already registered')) msg='Este email já tem conta. Faz login.';
+    if(msg.includes('Password should')) msg='A password deve ter pelo menos 6 caracteres.';
+    setLoginMsg(msg);
+    btn.disabled=false;
+    btn.textContent=loginMode==='entrar'?'Entrar':'Criar conta';
+  }
+}
+
+async function doResetPassword(){
+  const email=document.getElementById('loginEmail').value.trim();
+  if(!email){ setLoginMsg('Insere o teu email primeiro.'); return; }
+  const {error}=await supa.auth.resetPasswordForEmail(email);
+  if(error) setLoginMsg('Erro: '+error.message);
+  else setLoginMsg('✅ Email de recuperação enviado. Verifica a caixa de entrada.','success');
+}
+
+async function doLogout(){
+  if(!confirm('Terminar sessão?')) return;
+  await supa.auth.signOut();
+}
+
+// Enter no campo de password faz login
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && document.getElementById('loginOverlay')?.style.display!=='none'){
+    doLogin();
+  }
+});
+
+// ── INICIALIZAÇÃO COM AUTH ────────────────────────────────────────────────────
+async function initApp(user){
+  currentUser = user;
+
+  // Actualizar email no header desktop
+  const emailEl=document.getElementById('userEmailDesktop');
+  if(emailEl) emailEl.textContent=user.email;
+
+  // Esconder login
+  document.getElementById('loginOverlay').style.display='none';
+
+  // Carregar estado: primeiro tentar Supabase, fallback localStorage
+  const g=loadGlobal();
+  const anoAtivo=g.anoLetivo||'2025/2026';
+
+  showSync('A carregar dados…');
+  let remoteData = await supaLoad(anoAtivo);
+  hideSync();
+
+  if(remoteData){
+    // Dados da cloud — guardar também em localStorage como cache
+    try{ localStorage.setItem(stateKey(anoAtivo), JSON.stringify(remoteData)); }catch{}
+    S = remoteData;
+  } else {
+    // Sem dados na cloud — usar localStorage ou criar novo
+    S = loadState();
+  }
+
+  // Garantir campos obrigatórios
+  if(!S.turmas) S.turmas=[];
+  if(!S.horario) S.horario={};
+  if(!S.feriados||!S.feriados.length) S.feriados=calcFeriadosAno(S.anoLetivo);
+  if(!S.pausas) S.pausas=[];
+  if(!S.pausasIntervalos) S.pausasIntervalos=[];
+  if(!S.calendario) S.calendario=calcCalendarioDefault(S.anoLetivo);
+  if(!S.sumarios) S.sumarios={};
+  if(!S.faltas) S.faltas={};
+  if(!S.planificacao) S.planificacao={};
+  if(!S.avaliacao) S.avaliacao={};
+  if(!S.modalidadesSemana) S.modalidadesSemana={};
+  if(!S.lastSumarioTurma) S.lastSumarioTurma=null;
+
+  currentWeekOffset = calcCurrentWeekOffset();
+
+  // Mostrar a app
+  if(isMobile()) renderMobile();
+  else render();
+}
+
+// Escutar mudanças de autenticação
+supa.auth.onAuthStateChange(async (event, session)=>{
+  if(session?.user){
+    if(!currentUser || currentUser.id !== session.user.id){
+      await initApp(session.user);
+    }
+  } else {
+    // Sem sessão — mostrar login
+    currentUser = null;
+    document.getElementById('loginOverlay').style.display='flex';
+    document.getElementById('app').innerHTML='';
+    document.getElementById('mobileShell') && (document.getElementById('mobileShell').style.display='none');
+  }
+});
+
+// Verificar sessão existente no arranque
+(async ()=>{
+  const {data:{session}}=await supa.auth.getSession();
+  if(session?.user){
+    await initApp(session.user);
+  } else {
+    document.getElementById('loginOverlay').style.display='flex';
+  }
+})();
 
 // Resize: trocar entre desktop e mobile
 window.addEventListener('resize',()=>{
+  if(!currentUser) return;
   if(isMobile()) renderMobile();
   else render();
 });
