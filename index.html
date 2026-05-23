@@ -96,7 +96,23 @@
   .schedule-table{width:100%;border-collapse:collapse;font-size:12px}
   .schedule-table th{background:var(--navy);color:#fff;padding:8px 10px;text-align:center;font-weight:600;font-size:11px}
   .schedule-table td{border:1px solid var(--border);padding:0;vertical-align:top;min-width:100px}
-  .time-col{background:var(--gray2);color:var(--gray);font-size:10px;font-weight:600;padding:6px 8px;text-align:center;white-space:nowrap;width:90px}
+  .time-short{display:none}
+  .schedule-scroll{overflow-x:auto}
+  @media(max-width:700px){
+    .schedule-scroll{overflow-x:visible}
+    .schedule-table{table-layout:fixed;width:100%}
+    .schedule-table th,.schedule-table td{min-width:0!important}
+    .time-col-th,.time-col{width:38px!important;padding:4px 2px!important;font-size:9px!important}
+    .time-full{display:none}
+    .time-short{display:inline}
+    .aula-cell{padding:4px 3px!important;min-height:44px!important}
+    .aula-turma{font-size:10px!important}
+    .aula-espaco{font-size:9px!important}
+    .aula-modal{font-size:9px!important}
+    .schedule-table th{font-size:9px!important;padding:5px 2px!important}
+    .schedule-table th small{font-size:8px!important}
+  }
+  .time-col{background:var(--gray2);color:var(--gray);font-size:10px;font-weight:600;padding:6px 4px;text-align:center;white-space:nowrap;width:90px}
   .aula-cell{padding:6px 8px;min-height:52px;cursor:pointer;transition:background 0.1s;position:relative}
   .aula-cell:hover{background:var(--sky)}
   .aula-cell.empty{background:#fafafa}
@@ -173,6 +189,10 @@
   @media(max-width:600px){
     .turma-grid{grid-template-columns:1fr}
     .sidebar{display:none}
+  }
+  @media(max-width:700px){
+    .cal-layout{display:flex!important;flex-direction:column!important}
+    .cal-horario-card{order:2;width:100%}
   }
 
   /* ── PÁGINA INICIAL MOBILE ──────────────────────────────── */
@@ -2746,15 +2766,18 @@ function renderSemanal(){
       </div>
     </div>
     ${!semana?`<div class="empty-msg">Configure o Calendário Letivo para ver as semanas</div>`:`
-    <div style="overflow-x:auto">
+    <div class="schedule-scroll">
     <table class="schedule-table">
-      <thead><tr><th style="width:90px">Hora</th>${DIAS.map((d,i)=>{
+      <thead><tr><th class="time-col-th">Hora</th>${DIAS.map((d,i)=>{
         const dayDate = semana[i];
         const wx = isCurrentWeek && weatherCache[dayDate];
         return `<th>${d}<br><small style="font-weight:400;opacity:0.8">${fmtDate(dayDate)}</small>${wx?`<br><span title="${wx.desc} · ${wx.tempMin}°–${wx.tempMax}°C" style="font-size:22px;cursor:default;line-height:1.4">${wx.icon}</span>`:''}`;
       }).join('')}</tr></thead>
       <tbody>${BLOCOS.map((bloco,bi)=>`<tr>
-        <td class="time-col">${bloco}</td>
+        <td class="time-col">
+          <span class="time-full">${bloco}</span>
+          <span class="time-short">${bloco.slice(0,5)}</span>
+        </td>
         ${DIAS.map((d,di)=>{
           const slot=`${di}_${bi}`;
           const aula=S.horario[slot];
@@ -2898,7 +2921,7 @@ function renderCalendario(){
   const cal=S.calendario;
   return `<div>
     <div class="section-title">Calendário Letivo</div>
-    <div class="grid-2" style="gap:20px;align-items:start">
+    <div class="grid-2 cal-layout" style="gap:20px;align-items:start">
       <div>
         <div class="card">
           <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:14px">📅 Datas Principais</div>
@@ -2949,7 +2972,7 @@ function renderCalendario(){
           ${!(S.pausasIntervalos&&S.pausasIntervalos.length)?'<div style="color:var(--gray);font-size:12px">Nenhuma pausa adicionada.</div>':''}
         </div>
       </div>
-      <div class="card">
+      <div class="card cal-horario-card">
         <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px">🗓️ Horário Semanal Base</div>
         <p style="font-size:11px;color:var(--gray);margin-bottom:12px">Defina a turma e espaço para cada bloco. Este horário gera automaticamente as aulas previstas.</p>
         <div style="overflow-x:auto">
