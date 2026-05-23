@@ -3,7 +3,7 @@
   "short_name": "Dossier de EF",
   "description": "Dossier digital do Professor de Educação Física — Bocage",
   "start_url": "./index.html",
-  "display": "standalone",
+  "display": "minimal-ui",
   "background_color": "#1a2d4a",
   "theme_color": "#1a2d4a",
   "orientation": "any",
