@@ -2,8 +2,20 @@
 <html lang="pt">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dossier EF — Professor de Educação Física</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Dossier de EF</title>
+<meta name="description" content="Dossier digital para Professor de Educação Física — Bocage">
+<meta name="theme-color" content="#1a2d4a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dossier de EF">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
+<link rel="apple-touch-icon" href="icons/icon-192x192.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144x144.png">
+<link rel="apple-touch-icon" sizes="128x128" href="icons/icon-128x128.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -163,6 +175,25 @@
     .sidebar{display:none}
   }
 
+  /* ── PÁGINA INICIAL MOBILE ──────────────────────────────── */
+  .home-screen{display:flex;flex-direction:column;min-height:100vh;background:linear-gradient(160deg,#0f1f3a 0%,#1a2d4a 50%,#1e3a5f 100%);padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+  .home-header{padding:28px 20px 16px;text-align:center}
+  .home-icon{width:80px;height:80px;border-radius:20px;object-fit:cover;margin:0 auto 12px;display:block;box-shadow:0 4px 20px rgba(0,0,0,0.4)}
+  .home-title{font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-bottom:2px}
+  .home-subtitle{font-size:13px;color:rgba(255,255,255,0.5)}
+  .home-user{font-size:12px;color:#60a5fa;margin-top:6px;font-weight:500}
+  .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px 16px 16px}
+  .home-btn{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:20px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all 0.15s;text-decoration:none;-webkit-tap-highlight-color:transparent}
+  .home-btn:active{background:rgba(255,255,255,0.15);transform:scale(0.97)}
+  .home-btn-icon{font-size:32px;line-height:1}
+  .home-btn-label{font-size:13px;font-weight:600;color:#fff;text-align:center;line-height:1.2}
+  .home-btn-sub{font-size:10px;color:rgba(255,255,255,0.45);text-align:center}
+  .home-footer{margin-top:auto;padding:16px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:10px;align-items:center}
+  .home-escola{font-size:11px;color:rgba(255,255,255,0.35);text-align:center}
+  .home-logout{background:rgba(220,38,38,0.15);border:1px solid rgba(220,38,38,0.3);color:#fca5a5;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;width:100%;transition:all 0.15s}
+  .home-logout:active{background:rgba(220,38,38,0.3)}
+  .home-ano{font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px}
+
   /* ── LOGIN ─────────────────────────────────────────────── */
   .login-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#0f1f3a 0%,#1a2d4a 60%,#1e3a5f 100%);display:flex;align-items:center;justify-content:center;z-index:9999}
   .login-box{background:#fff;border-radius:16px;padding:40px 36px;width:380px;max-width:92vw;box-shadow:0 24px 80px rgba(0,0,0,0.4)}
@@ -314,7 +345,7 @@ async function initApp(){
   if(!s.reunioes) s.reunioes=[];
 
   S = s;
-  currentTab = 'painel';
+  currentTab = isMobile() ? 'home' : 'painel';
   currentWeekOffset = calcCurrentWeekOffset();
   render();
 }
@@ -508,17 +539,75 @@ let modal=null;
 function render(){
   if(!S || !currentUser) return; // aguardar login
   const app=document.getElementById('app');
+  // Em mobile, mostrar página inicial dedicada
+  if(isMobile() && currentTab==='home'){
+    app.innerHTML=renderHome();
+    attachHomeEvents();
+    return;
+  }
   app.innerHTML=`${renderHeader()}<div class="body">${renderSidebar()}<div class="main" id="main-content">${renderTab()}</div></div>${modal?renderModal():''}`;
   attachEvents();
-  // Corrigir sticky thead após render (medição real das alturas das linhas)
   requestAnimationFrame(()=>{ fixStickyThead(); });
+}
+
+function renderHome(){
+  const items=[
+    {id:'painel',    icon:'🏠', label:'Painel Principal',  sub:'Visão geral'},
+    {id:'turmas',    icon:'🏫', label:'Turmas',            sub:'Alunos e grupos'},
+    {id:'semanal',   icon:'📅', label:'Plano Semanal',     sub:'Horário e aulas'},
+    {id:'sumarios',  icon:'📝', label:'Sumários e Faltas', sub:'Registos de aula'},
+    {id:'avaliacao', icon:'🎯', label:'Avaliação',         sub:'Notas e Fitescola'},
+    {id:'planificacao',icon:'📊',label:'Planificação',     sub:'Modalidades'},
+    {id:'calendario',icon:'🗓️', label:'Calendário Letivo', sub:'Feriados e pausas'},
+    {id:'reunioes',  icon:'🗣️', label:'Reuniões e Cenas',  sub:'Notas e eventos'},
+  ];
+  return `<div class="home-screen">
+    <div class="home-header">
+      <img class="home-icon" src="icons/icon-192x192.png" alt="Ícone" onerror="this.style.display='none'">
+      <div class="home-title">Dossier de EF</div>
+      <div class="home-subtitle">Bocage · Prof. de Educação Física</div>
+      <div class="home-user">👤 ${currentUser ? esc(currentUser.email) : ''}</div>
+    </div>
+    <div class="home-grid">
+      ${items.map(i=>`
+        <div class="home-btn" data-hometab="${i.id}">
+          <span class="home-btn-icon">${i.icon}</span>
+          <span class="home-btn-label">${i.label}</span>
+          <span class="home-btn-sub">${i.sub}</span>
+        </div>`).join('')}
+    </div>
+    <div class="home-footer">
+      <div class="home-escola">${esc(S.escola||'')}</div>
+      <div class="home-ano">Ano letivo ${esc(S.anoLetivo||'')}</div>
+      <button class="home-logout" id="homeLogoutBtn">🚪 Terminar sessão</button>
+    </div>
+  </div>`;
+}
+
+function attachHomeEvents(){
+  document.querySelectorAll('[data-hometab]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      currentTab=el.dataset.hometab;
+      render();
+    });
+  });
+  const lb=document.getElementById('homeLogoutBtn');
+  if(lb) lb.addEventListener('click',async()=>{
+    if(confirm('Tens a certeza que queres terminar a sessão?')){
+      clearTimeout(_saveTimer);
+      try{ await saveStateToDB(S); }catch{}
+      await doLogout();
+    }
+  });
 }
 
 function renderHeader(){
   const years=[];
   for(let y=2024;y<=2040;y++) years.push(`${y}/${y+1}`);
+  const mobileBack = isMobile() ? `<button id="mobileBackBtn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:5px 10px;border-radius:6px;font-size:18px;cursor:pointer;line-height:1;flex-shrink:0">←</button>` : '';
   return `<div class="header">
-    <div class="header-logo">DOSSIER PROF. EF</div>
+    ${mobileBack}
+    <div class="header-logo">DOSSIER EF</div>
     <input class="school-name" id="schoolName" value="${esc(S.escola)}" placeholder="Nome da escola" />
     <input class="prof-name" id="profName" value="${esc(S.professor||'')}" placeholder="Nome do Professor" />
     <select class="year-select" id="yearSelect">${years.map(y=>`<option value="${y}"${y===S.anoLetivo?' selected':''}>${y}</option>`).join('')}</select>
@@ -563,7 +652,10 @@ function renderSidebar(){
   </div>`;
 }
 
+function isMobile(){ return window.innerWidth <= 600; }
+
 function renderTab(){
+  if(currentTab==='home') return renderHome();
   if(currentTab==='painel') return renderPainel();
   if(currentTab==='turmas') return renderTurmas();
   if(currentTab==='semanal') return renderSemanal();
@@ -3302,6 +3394,8 @@ function getSemestre(dt){const cal=S.calendario;if(!cal||!cal.fim1s)return 1;ret
 
 // === EVENTS ===
 function attachEvents(){
+  const mbb=document.getElementById('mobileBackBtn');
+  if(mbb) mbb.addEventListener('click',()=>{ currentTab='home'; render(); });
   const sn=document.getElementById('schoolName');
   if(sn) sn.addEventListener('input',e=>{S.escola=e.target.value;save();});
   const pn=document.getElementById('profName');
@@ -5068,6 +5162,13 @@ function getCurrentWeekDates(){
     dates.push(d.toISOString().slice(0,10));
   }
   return dates;
+}
+
+// Registar Service Worker (PWA)
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
 }
 
 // Arrancar com autenticação
