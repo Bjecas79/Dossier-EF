@@ -347,6 +347,7 @@ async function saveStateToDB(s){
 
 // save com debounce 1.5s para não sobrecarregar a DB
 function save(){
+  S.updated_at = new Date().toISOString();
   // Guardar imediatamente no localStorage como cache local
   try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
   // Debounce para Supabase
@@ -358,44 +359,107 @@ function save(){
 }
 
 // ── Sincronização manual ─────────────────────────────────────
+function _syncBtnReset(btn, btnId){
+  btn.textContent = btnId==='homeSyncBtn' ? '☁️ Sincronizar dados' : '☁️ Sincronizar';
+  btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim();
+  btn.disabled = false;
+}
+
 async function doSync(btnId){
   const btn = document.getElementById(btnId);
   if(!btn || !S) return;
   clearTimeout(_saveTimer);
-  btn.textContent = '⏳ A guardar…';
-  btn.className = btn.className.replace(/(ok|err|saving)/g,'').trim() + ' saving';
   btn.disabled = true;
+
+  if(btnId === 'homeSyncBtn'){
+    // Mobile: pull da DB primeiro, depois decide
+    btn.textContent = '⏳ A sincronizar…';
+    btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' saving';
+    try {
+      const remoto = await loadStateFromDB(S.anoLetivo);
+      if(remoto){
+        const localTs  = S.updated_at || '';
+        const remotoTs = remoto.updated_at || '';
+        if(remotoTs > localTs){
+          // Remoto mais recente: substituir estado local
+          S = remoto;
+          ['turmas','horario','sumarios','faltas','planificacao','avaliacao','modalidadesSemana','reunioes','pausas','pausasIntervalos'].forEach(k=>{ if(!S[k]) S[k]=k.includes('Semana')||k==='planificacao'||k==='avaliacao'?{}:[]; });
+          if(!S.feriados||!S.feriados.length) S.feriados=calcFeriadosAno(S.anoLetivo);
+          if(!S.calendario) S.calendario=calcCalendarioDefault(S.anoLetivo);
+          try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+          btn.textContent = '✅ Atualizado!';
+        } else {
+          await saveStateToDB(S);
+          btn.textContent = '✅ Sincronizado';
+        }
+      } else {
+        // Nada na DB: guardar local
+        S.updated_at = new Date().toISOString();
+        await saveStateToDB(S);
+        btn.textContent = '✅ Guardado';
+      }
+      btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' ok';
+      currentWeekOffset = calcCurrentWeekOffset();
+      render();
+      const b2 = document.getElementById(btnId);
+      if(b2){
+        b2.textContent = btn.textContent;
+        b2.className = 'sync-btn ok';
+        b2.disabled = false;
+        b2.addEventListener('click', ()=>doSync(btnId));
+        setTimeout(()=>_syncBtnReset(b2, btnId), 2500);
+      }
+      return;
+    } catch(e) {
+      btn.textContent = '❌ Sem ligação';
+      btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' err';
+      setTimeout(()=>_syncBtnReset(btn, btnId), 3000);
+      return;
+    }
+  }
+
+  // Desktop: push
+  btn.textContent = '⏳ A guardar…';
+  btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' saving';
   try {
+    S.updated_at = new Date().toISOString();
     await saveStateToDB(S);
     btn.textContent = '✅ Guardado';
-    btn.className = btn.className.replace(/(ok|err|saving)/g,'').trim() + ' ok';
-    setTimeout(()=>{
-      btn.textContent = '☁️ Sincronizar' + (btnId==='homeSyncBtn' ? ' dados' : '');
-      btn.className = btn.className.replace(/(ok|err|saving)/g,'').trim();
-      btn.disabled = false;
-    }, 2000);
+    btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' ok';
+    setTimeout(()=>_syncBtnReset(btn, btnId), 2000);
   } catch(e) {
     btn.textContent = '❌ Erro';
-    btn.className = btn.className.replace(/(ok|err|saving)/g,'').trim() + ' err';
-    setTimeout(()=>{
-      btn.textContent = '☁️ Sincronizar' + (btnId==='homeSyncBtn' ? ' dados' : '');
-      btn.className = btn.className.replace(/(ok|err|saving)/g,'').trim();
-      btn.disabled = false;
-    }, 3000);
+    btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' err';
+    setTimeout(()=>_syncBtnReset(btn, btnId), 3000);
   }
 }
 
 // ── Inicializar app após login ────────────────────────────────
 async function initApp(){
+  // Mostrar ecrã de carregamento enquanto vai buscar dados ao Supabase
+  const app = document.getElementById('app');
+  if(app) app.innerHTML = `<div style="position:fixed;inset:0;background:linear-gradient(135deg,#0f1f3a,#1a2d4a);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff">
+    <div style="font-size:32px">📋</div>
+    <div style="font-size:18px;font-weight:700;color:#60a5fa">DOSSIER EF</div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.55)">A sincronizar dados…</div>
+  </div>`;
+
   let g = {};
-  try { g = await loadGlobalFromDB(); } catch(e){}
+  let dbOk = false;
+  try { g = await loadGlobalFromDB(); dbOk = true; } catch(e){ console.warn('loadGlobalFromDB falhou:', e); }
   const anoAtivo = g.ano_letivo || '2025/2026';
 
   // Tentar carregar da DB; fallback para cache local
   let s = null;
-  try { s = await loadStateFromDB(anoAtivo); } catch(e){}
+  if(dbOk){
+    try { s = await loadStateFromDB(anoAtivo); } catch(e){ console.warn('loadStateFromDB falhou:', e); dbOk = false; }
+  }
   if(!s){
     try { s = JSON.parse(localStorage.getItem('dossier_cache__'+anoAtivo)); }catch{}
+    if(s && !dbOk){
+      // Avisar que está a usar dados locais (podem estar desatualizados)
+      console.warn('A usar cache local — Supabase inacessível');
+    }
   }
   if(!s) s = createFreshState(anoAtivo, g.escola||'', g.logo||'', g.professor||'');
 
