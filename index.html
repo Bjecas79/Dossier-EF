@@ -309,10 +309,18 @@ async function doLogout(){
 }
 
 // ── Persistência Supabase (substitui localStorage) ────────────
+// Converter "2025/2026" ↔ "2025-2026" para uso seguro como valor de filtro na DB
+// O caracter "/" causa erro 400 no PostgREST quando usado em .eq() ou onConflict
+function anoLetivoParaDB(ano){ return (ano||'').replace('/', '-'); }
+function anoLetivoDeDB(ano){ return (ano||'').replace('-', '/'); }
+
 async function loadGlobalFromDB(){
   const { data, error } = await supa.from('dossier_global').select('*').eq('user_id', currentUser.id).maybeSingle();
   if(error){ console.warn('loadGlobalFromDB:', error.message); return {}; }
-  return data || {};
+  if(!data) return {};
+  // Converter ano_letivo de volta para formato com / (ex: "2025-2026" → "2025/2026")
+  if(data.ano_letivo) data.ano_letivo = anoLetivoDeDB(data.ano_letivo);
+  return data;
 }
 
 async function saveGlobalToDB(g){
@@ -321,28 +329,27 @@ async function saveGlobalToDB(g){
     escola: g.escola||'',
     professor: g.professor||'',
     logo: g.logo||'',
-    ano_letivo: g.anoLetivo||'2025/2026',
+    ano_letivo: anoLetivoParaDB(g.anoLetivo||'2025/2026'),
     updated_at: new Date().toISOString()
   }, { onConflict: 'user_id' });
   if(error) console.warn('saveGlobalToDB:', error.message);
 }
 
 async function loadStateFromDB(ano){
+  const anoSafe = anoLetivoParaDB(ano);
   // Usar maybeSingle() em vez de single() para evitar erro 406 quando não existe registo
   const { data, error } = await supa.from('dossier_data')
     .select('dados, updated_at')
     .eq('user_id', currentUser.id)
-    .eq('ano_letivo', ano)
+    .eq('ano_letivo', anoSafe)
     .maybeSingle();
   if(error){ console.warn('loadStateFromDB:', error.message); return null; }
   if(!data) return null;
   // Garantir que o updated_at da linha da DB está dentro do objeto dados
-  // (necessário para a comparação de timestamps na sincronização)
   const state = data.dados || null;
   if(state && data.updated_at){
     const dbTs = data.updated_at;
     const stateTs = state.updated_at || '';
-    // Usar o timestamp mais recente entre o da coluna e o do objeto
     if(dbTs > stateTs) state.updated_at = dbTs;
   }
   return state;
@@ -351,11 +358,12 @@ async function loadStateFromDB(ano){
 async function saveStateToDB(s){
   const now = new Date().toISOString();
   if(!s.updated_at) s.updated_at = now;
+  const anoSafe = anoLetivoParaDB(s.anoLetivo);
   const { error } = await supa.from('dossier_data').upsert({
     user_id: currentUser.id,
-    ano_letivo: s.anoLetivo,
+    ano_letivo: anoSafe,   // "2025-2026" em vez de "2025/2026"
     dados: s,
-    updated_at: now  // coluna da DB sincronizada com o timestamp do objeto
+    updated_at: now
   }, { onConflict: 'user_id,ano_letivo' });
   if(error){ console.warn('saveStateToDB:', error.message); throw error; }
   // Actualizar globals
