@@ -29,7 +29,7 @@
     --green:#16a34a;--green2:#dcfce7;--red:#dc2626;--red2:#fee2e2;
     --amber:#d97706;--amber2:#fef3c7;--purple:#7c3aed;--purple2:#ede9fe;
     --gray:#64748b;--gray2:#f1f5f9;--border:#e2e8f0;
-    --card:#fff;--sidebar-w:220px;--header-h:56px
+    --card:#fff;--sidebar-w:220px;--header-h:64px
   }
   .app{display:flex;flex-direction:column;height:100vh}
   .header{background:var(--navy);color:#fff;height:var(--header-h);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.1);position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
@@ -331,11 +331,10 @@ function setSyncStatus(state){
   if(!el) return;
   if(state==='saving'){
     el.textContent='⏳ A guardar...';
-    el.style.color='rgba(255,255,255,0.5)';
+    el.style.color='rgba(255,255,255,0.6)';
   } else if(state==='saved'){
     el.textContent='✓ Guardado';
     el.style.color='#86efac';
-    setTimeout(()=>{ const e=document.getElementById('syncIndicator'); if(e) e.textContent=''; }, 3000);
   } else if(state==='error'){
     el.textContent='⚠️ Erro ao guardar';
     el.style.color='#fca5a5';
@@ -634,8 +633,9 @@ function attachHomeEvents(){
   if(lb) lb.addEventListener('click',async()=>{
     if(confirm('Tens a certeza que queres terminar a sessão?')){
       clearTimeout(_saveTimer);
-      try{ await saveStateToDB(S); }catch{}
-      await doLogout();
+      try{ await Promise.race([saveStateToDB(S), new Promise(r=>setTimeout(r,3000))]); }catch{}
+      try{ await supa.auth.signOut(); }catch{}
+      window.location.reload();
     }
   });
 }
@@ -656,8 +656,10 @@ function renderHeader(){
         <span style="font-family:'Dancing Script','Segoe Script','Comic Sans MS',cursive;font-size:28px;color:#93c5fd;letter-spacing:0.5px;white-space:nowrap;text-shadow:0 1px 6px rgba(147,197,253,0.25)">Hugo Simões</span>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;margin-left:8px;padding-left:12px;border-left:1px solid rgba(255,255,255,0.1)">
-        <span class="user-badge" title="${currentUser?currentUser.email:''}">${currentUser?'👤 '+esc(currentUser.email):''}</span>
-        <span id="syncIndicator" style="font-size:10px;min-height:14px;transition:color 0.3s"></span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="syncIndicator" style="font-size:11px;font-weight:500;transition:all 0.3s;white-space:nowrap"></span>
+          <span class="user-badge" title="${currentUser?currentUser.email:''}">${currentUser?'👤 '+esc(currentUser.email):''}</span>
+        </div>
         <button class="logout-btn" id="logoutBtn">🚪 Terminar sessão</button>
       </div>
     </div>
@@ -3444,8 +3446,11 @@ function attachEvents(){
   if(logoutBtn) logoutBtn.addEventListener('click',async()=>{
     if(confirm('Tens a certeza que queres terminar a sessão?')){
       clearTimeout(_saveTimer);
-      try{ await saveStateToDB(S); }catch{}
-      await doLogout();
+      // Tentar guardar mas não bloquear o logout se falhar
+      try{ await Promise.race([saveStateToDB(S), new Promise(r=>setTimeout(r,3000))]); }catch{}
+      try{ await supa.auth.signOut(); }catch{}
+      // Forçar reload para limpar estado completamente
+      window.location.reload();
     }
   });
   const ys=document.getElementById('yearSelect');
@@ -5231,22 +5236,23 @@ window.addEventListener('beforeunload', (e)=>{
 // Re-sincronizar quando a aba/app volta a estar visível (abre no telemóvel, muda de aba, etc.)
 document.addEventListener('visibilitychange', async()=>{
   if(document.visibilityState === 'visible' && S && currentUser){
-    try{
-      const remoto = await loadStateFromDB(S.anoLetivo);
-      if(remoto && remoto.updated_at && S.updated_at){
-        // Se a versão remota é mais recente, carregar silenciosamente
-        if(remoto.updated_at > S.updated_at){
-          console.log('[Sync] Dados mais recentes encontrados na DB — a actualizar...');
-          const escola=S.escola; const logo=S.logo; const professor=S.professor;
-          S = remoto;
-          if(escola) S.escola=escola;
-          if(logo) S.logo=logo;
-          if(professor) S.professor=professor;
-          try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-          render();
-        }
-      } else if(remoto && !S.updated_at){
-        // Estado local não tem timestamp — preferir remoto
+    await syncFromDB();
+  }
+});
+
+// Polling a cada 30 segundos para sincronizar entre browsers diferentes
+setInterval(async()=>{
+  if(S && currentUser && document.visibilityState === 'visible'){
+    await syncFromDB();
+  }
+}, 30000);
+
+async function syncFromDB(){
+  try{
+    const remoto = await loadStateFromDB(S.anoLetivo);
+    if(remoto && remoto.updated_at && S.updated_at){
+      if(remoto.updated_at > S.updated_at){
+        console.log('[Sync] Dados mais recentes encontrados na DB — a actualizar...');
         const escola=S.escola; const logo=S.logo; const professor=S.professor;
         S = remoto;
         if(escola) S.escola=escola;
@@ -5255,9 +5261,17 @@ document.addEventListener('visibilitychange', async()=>{
         try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
         render();
       }
-    }catch(e){ /* silencioso — sem internet é normal */ }
-  }
-});
+    } else if(remoto && !S.updated_at){
+      const escola=S.escola; const logo=S.logo; const professor=S.professor;
+      S = remoto;
+      if(escola) S.escola=escola;
+      if(logo) S.logo=logo;
+      if(professor) S.professor=professor;
+      try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+      render();
+    }
+  }catch(e){ /* silencioso — sem internet é normal */ }
+}
 
 // Registar Service Worker (PWA)
 if('serviceWorker' in navigator){
