@@ -402,74 +402,42 @@ async function doSync(btnId){
   if(!btn || !S) return;
   clearTimeout(_saveTimer);
   btn.disabled = true;
-
-  if(btnId === 'homeSyncBtn'){
-    // Mobile: pull da DB primeiro, depois decide
-    btn.textContent = '⏳ A sincronizar…';
-    btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' saving';
-    try {
-      const remoto = await loadStateFromDB(S.anoLetivo);
-      if(remoto){
-        const localTs  = S.updated_at || '';
-        const remotoTs = remoto.updated_at || '';
-        if(remotoTs > localTs){
-          // Remoto mais recente: substituir estado local
-          S = remoto;
-          ['turmas','horario','sumarios','faltas','planificacao','avaliacao','modalidadesSemana','reunioes','pausas','pausasIntervalos'].forEach(k=>{ if(!S[k]) S[k]=k.includes('Semana')||k==='planificacao'||k==='avaliacao'?{}:[]; });
-          if(!S.feriados||!S.feriados.length) S.feriados=calcFeriadosAno(S.anoLetivo);
-          if(!S.calendario) S.calendario=calcCalendarioDefault(S.anoLetivo);
-          try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-          btn.textContent = '✅ Atualizado!';
-        } else {
-          await saveStateToDB(S);
-          btn.textContent = '✅ Sincronizado';
-        }
-      } else {
-        // Nada na DB: guardar local
-        S.updated_at = new Date().toISOString();
-        await saveStateToDB(S);
-        btn.textContent = '✅ Guardado';
-      }
-      btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' ok';
-      currentWeekOffset = calcCurrentWeekOffset();
-      render();
-      const b2 = document.getElementById(btnId);
-      if(b2){
-        b2.textContent = btn.textContent;
-        b2.className = 'sync-btn ok';
-        b2.disabled = false;
-        b2.addEventListener('click', ()=>doSync(btnId));
-        setTimeout(()=>_syncBtnReset(b2, btnId), 2500);
-      }
-      return;
-    } catch(e) {
-      btn.textContent = '❌ Sem ligação';
-      btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' err';
-      setTimeout(()=>_syncBtnReset(btn, btnId), 3000);
-      return;
-    }
-  }
-
-  // Desktop: pull+push bidirecional (igual ao mobile)
   btn.textContent = '⏳ A sincronizar…';
   btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' saving';
+
   try {
+    // 1. Buscar estado da DB (fonte de verdade remota)
     const remoto = await loadStateFromDB(S.anoLetivo);
-    if(remoto && (remoto.updated_at||'') > (S.updated_at||'')){
-      // Remoto mais recente: receber dados
-      S = _ensureStateFields(remoto, null);
-      try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-      btn.textContent = '✅ Atualizado!';
+
+    if(remoto){
+      // Comparar timestamps: usar o mais recente
+      const localTs  = S.updated_at  || '';
+      const remotoTs = remoto.updated_at || '';
+
+      if(remotoTs >= localTs){
+        // DB é mais recente (ou igual) → substituir estado local pela DB
+        S = _ensureStateFields(remoto, null);
+        try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+        btn.textContent = '✅ Atualizado!';
+      } else {
+        // Local é mais recente → guardar na DB
+        S.updated_at = new Date().toISOString();
+        await saveStateToDB(S);
+        try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+        btn.textContent = '✅ Guardado na nuvem';
+      }
     } else {
-      // Local mais recente (ou igual): guardar na DB
+      // Nada na DB → fazer upload do local
       S.updated_at = new Date().toISOString();
       await saveStateToDB(S);
       try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
       btn.textContent = '✅ Guardado';
     }
+
     btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' ok';
     currentWeekOffset = calcCurrentWeekOffset();
     render();
+    // Re-obter o botão após render()
     const b2 = document.getElementById(btnId);
     if(b2){
       b2.textContent = btn.textContent;
@@ -479,9 +447,31 @@ async function doSync(btnId){
       setTimeout(()=>_syncBtnReset(b2, btnId), 2500);
     }
   } catch(e) {
-    btn.textContent = '❌ Erro';
+    console.error('doSync erro:', e);
+    btn.textContent = '❌ Erro de ligação';
     btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' err';
+    btn.disabled = false;
     setTimeout(()=>_syncBtnReset(btn, btnId), 3000);
+  }
+}
+
+// Forçar pull da DB ignorando timestamps (para recuperar dados de outro dispositivo)
+async function doForcePull(){
+  if(!S || !currentUser) return;
+  clearTimeout(_saveTimer);
+  try{
+    const remoto = await loadStateFromDB(S.anoLetivo);
+    if(remoto){
+      S = _ensureStateFields(remoto, null);
+      try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+      currentWeekOffset = calcCurrentWeekOffset();
+      render();
+      alert('✅ Dados carregados da nuvem!');
+    } else {
+      alert('ℹ️ Não há dados na nuvem para este ano letivo.');
+    }
+  } catch(e){
+    alert('❌ Erro ao carregar da nuvem: ' + e.message);
   }
 }
 
@@ -776,6 +766,7 @@ function renderHome(){
       <div class="home-escola">${esc(S.escola||'')}</div>
       <div class="home-ano">Ano letivo ${esc(S.anoLetivo||'')}</div>
       <button class="sync-btn" id="homeSyncBtn" style="width:100%;padding:10px;font-size:13px">☁️ Sincronizar dados</button>
+      <button class="sync-btn" id="homePullBtn" style="width:100%;padding:10px;font-size:13px;background:rgba(124,58,237,0.2);border-color:rgba(124,58,237,0.4);color:#c4b5fd">⬇️ Carregar da nuvem</button>
       <button class="home-logout" id="homeLogoutBtn">🚪 Terminar sessão</button>
     </div>
   </div>`;
@@ -790,6 +781,8 @@ function attachHomeEvents(){
   });
   const sb=document.getElementById('homeSyncBtn');
   if(sb) sb.addEventListener('click',()=>doSync('homeSyncBtn'));
+  const pb=document.getElementById('homePullBtn');
+  if(pb) pb.addEventListener('click',()=>doForcePull());
   const lb=document.getElementById('homeLogoutBtn');
   if(lb) lb.addEventListener('click',async()=>{
     if(confirm('Tens a certeza que queres terminar a sessão?')){
@@ -812,6 +805,7 @@ function renderHeader(){
     <select class="year-select" id="yearSelect">${years.map(y=>`<option value="${y}"${y===S.anoLetivo?' selected':''}>${y}</option>`).join('')}</select>
     <div class="header-right">
       <button class="sync-btn" id="syncBtn">☁️ Sincronizar</button>
+      <button class="sync-btn" id="pullBtn" title="Carregar da nuvem (ignora cache local)" style="background:rgba(124,58,237,0.15);border-color:rgba(124,58,237,0.3);color:#c4b5fd">⬇️ Nuvem</button>
       <div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.1">
         <span style="font-size:10px;color:rgba(255,255,255,0.45);letter-spacing:0.5px;text-transform:uppercase">Desenvolvido por</span>
         <span style="font-family:'Dancing Script','Segoe Script','Comic Sans MS',cursive;font-size:28px;color:#93c5fd;letter-spacing:0.5px;white-space:nowrap;text-shadow:0 1px 6px rgba(147,197,253,0.25)">Hugo Simões</span>
@@ -3605,6 +3599,8 @@ function attachEvents(){
   if(pn) pn.addEventListener('input',e=>{S.professor=e.target.value;save();});
   const syncBtn=document.getElementById('syncBtn');
   if(syncBtn) syncBtn.addEventListener('click',()=>doSync('syncBtn'));
+  const pullBtn=document.getElementById('pullBtn');
+  if(pullBtn) pullBtn.addEventListener('click',()=>doForcePull());
   const logoutBtn=document.getElementById('logoutBtn');
   if(logoutBtn) logoutBtn.addEventListener('click',async()=>{
     if(confirm('Tens a certeza que queres terminar a sessão?')){
