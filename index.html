@@ -635,10 +635,18 @@ function render(){
   const app=document.getElementById('app');
   // Em mobile, mostrar página inicial dedicada
   if(isMobile() && currentTab==='home'){
+    // Permitir scroll na home screen
+    document.body.style.overflow='auto';
+    document.body.style.height='auto';
+    app.style.height='auto';
     app.innerHTML=renderHome();
     attachHomeEvents();
     return;
   }
+  // Restaurar overflow bloqueado nos outros separadores
+  document.body.style.overflow='hidden';
+  document.body.style.height='100vh';
+  app.style.height='100vh';
   app.innerHTML=`${renderHeader()}<div class="body">${renderSidebar()}<div class="main" id="main-content">${renderTab()}</div></div>${modal?renderModal():''}`;
   attachEvents();
   requestAnimationFrame(()=>{ fixStickyThead(); });
@@ -677,8 +685,8 @@ function renderHome(){
       <div class="home-ano">Ano letivo ${esc(S.anoLetivo||'')}</div>
       <button class="home-logout" id="homeLogoutBtn">🚪 Terminar sessão</button>
       <div style="margin-top:8px;text-align:center;line-height:1.3">
-        <div style="font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:0.5px;text-transform:uppercase">Desenvolvido por</div>
-        <div style="font-family:'Dancing Script','Segoe Script','Comic Sans MS',cursive;font-size:26px;color:#93c5fd;letter-spacing:0.5px;text-shadow:0 1px 6px rgba(147,197,253,0.25)">Hugo Simões</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.55);letter-spacing:0.5px;text-transform:uppercase">Desenvolvido por</div>
+        <div style="font-family:'Dancing Script','Segoe Script','Comic Sans MS',cursive;font-size:22px;color:#93c5fd;letter-spacing:0.5px;text-shadow:0 1px 6px rgba(147,197,253,0.25)">Hugo Simões</div>
       </div>
     </div>
   </div>`;
