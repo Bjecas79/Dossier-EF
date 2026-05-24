@@ -445,22 +445,13 @@ async function initApp(){
   </div>`;
 
   let g = {};
-  let dbOk = false;
-  try { g = await loadGlobalFromDB(); dbOk = true; } catch(e){ console.warn('loadGlobalFromDB falhou:', e); }
+  try { g = await loadGlobalFromDB(); } catch(e){}
   const anoAtivo = g.ano_letivo || '2025/2026';
 
-  // Tentar carregar da DB; fallback para cache local
+  // Tentar sempre carregar da DB; fallback para cache local
   let s = null;
-  if(dbOk){
-    try { s = await loadStateFromDB(anoAtivo); } catch(e){ console.warn('loadStateFromDB falhou:', e); dbOk = false; }
-  }
-  if(!s){
-    try { s = JSON.parse(localStorage.getItem('dossier_cache__'+anoAtivo)); }catch{}
-    if(s && !dbOk){
-      // Avisar que está a usar dados locais (podem estar desatualizados)
-      console.warn('A usar cache local — Supabase inacessível');
-    }
-  }
+  try { s = await loadStateFromDB(anoAtivo); } catch(e){}
+  if(!s){ try { s = JSON.parse(localStorage.getItem('dossier_cache__'+anoAtivo)); }catch{} }
   if(!s) s = createFreshState(anoAtivo, g.escola||'', g.logo||'', g.professor||'');
 
   // Garantir campos
