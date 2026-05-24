@@ -267,14 +267,14 @@
 
 <script>
 // ══════════════════════════════════════════════════════════════
-// SUPABASE — Autenticação e persistência
+// SUPABASE — Autenticação e persistência (versão limpa)
 // ══════════════════════════════════════════════════════════════
 const SUPA_URL = 'https://thwovkwqxaugnterwzdm.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRod292a3dxeGF1Z250ZXJ3emRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMTk5OTIsImV4cCI6MjA5NDc5NTk5Mn0.qyWqQXhkaZQ3D0eAx7_7XmgICQu-oRsFznP2cCPWGAA';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-let currentUser = null; // utilizador autenticado
-let _saveTimer = null;  // debounce do save
+let currentUser = null;
+let _saveTimer  = null;
 
 // ── Autenticação ──────────────────────────────────────────────
 async function initAuth(){
@@ -287,8 +287,7 @@ async function initAuth(){
       currentUser = session.user;
       await initApp();
     } else if(event==='SIGNED_OUT'){
-      currentUser = null;
-      S = null;
+      currentUser = null; S = null;
       renderLogin();
     }
   });
@@ -305,245 +304,146 @@ async function doSignup(email, password){
 }
 
 async function doLogout(){
+  clearTimeout(_saveTimer);
+  if(S && currentUser){ try{ await _dbSave(S); }catch{} }
   await supa.auth.signOut();
 }
 
-// ── Persistência Supabase (substitui localStorage) ────────────
-// Converter "2025/2026" ↔ "2025-2026" para uso seguro como valor de filtro na DB
-// O caracter "/" causa erro 400 no PostgREST quando usado em .eq() ou onConflict
-function anoLetivoParaDB(ano){ return (ano||'').replace('/', '-'); }
-function anoLetivoDeDB(ano){ return (ano||'').replace('-', '/'); }
-
-async function loadGlobalFromDB(){
-  const { data, error } = await supa.from('dossier_global').select('*').eq('user_id', currentUser.id).maybeSingle();
-  if(error){ console.warn('loadGlobalFromDB:', error.message); return {}; }
-  if(!data) return {};
-  // Converter ano_letivo de volta para formato com / (ex: "2025-2026" → "2025/2026")
-  if(data.ano_letivo) data.ano_letivo = anoLetivoDeDB(data.ano_letivo);
-  return data;
-}
-
-async function saveGlobalToDB(g){
-  const { error } = await supa.from('dossier_global').upsert({
-    user_id: currentUser.id,
-    escola: g.escola||'',
-    professor: g.professor||'',
-    logo: g.logo||'',
-    ano_letivo: anoLetivoParaDB(g.anoLetivo||'2025/2026'),
-    updated_at: new Date().toISOString()
-  }, { onConflict: 'user_id' });
-  if(error) console.warn('saveGlobalToDB:', error.message);
-}
-
-async function loadStateFromDB(ano){
-  const anoSafe = anoLetivoParaDB(ano);
-  // Usar maybeSingle() em vez de single() para evitar erro 406 quando não existe registo
-  const { data, error } = await supa.from('dossier_data')
-    .select('dados, updated_at')
+// ── DB: operações simples ─────────────────────────────────────
+// Carregar dados do utilizador atual
+async function _dbLoad(){
+  const { data, error } = await supa
+    .from('dossier_data')
+    .select('dados')
     .eq('user_id', currentUser.id)
-    .eq('ano_letivo', anoSafe)
     .maybeSingle();
-  if(error){ console.warn('loadStateFromDB:', error.message); return null; }
-  if(!data) return null;
-  // Garantir que o updated_at da linha da DB está dentro do objeto dados
-  const state = data.dados || null;
-  if(state && data.updated_at){
-    const dbTs = data.updated_at;
-    const stateTs = state.updated_at || '';
-    if(dbTs > stateTs) state.updated_at = dbTs;
-  }
-  return state;
+  if(error) throw new Error('Erro ao carregar: ' + error.message);
+  return data ? data.dados : null;
 }
 
-async function saveStateToDB(s){
-  const now = new Date().toISOString();
-  if(!s.updated_at) s.updated_at = now;
-  const anoSafe = anoLetivoParaDB(s.anoLetivo);
-  const { error } = await supa.from('dossier_data').upsert({
-    user_id: currentUser.id,
-    ano_letivo: anoSafe,   // "2025-2026" em vez de "2025/2026"
-    dados: s,
-    updated_at: now
-  }, { onConflict: 'user_id,ano_letivo' });
-  if(error){ console.warn('saveStateToDB:', error.message); throw error; }
-  // Actualizar globals
-  await saveGlobalToDB({ escola:s.escola, professor:s.professor, logo:s.logo, anoLetivo:s.anoLetivo });
+// Guardar dados do utilizador atual (upsert pela chave user_id)
+async function _dbSave(s){
+  s.updated_at = new Date().toISOString();
+  const { error } = await supa
+    .from('dossier_data')
+    .upsert({
+      user_id:    currentUser.id,
+      ano_letivo: s.anoLetivo || '2025/2026',
+      dados:      s,
+      updated_at: s.updated_at
+    }, { onConflict: 'user_id' });
+  if(error) throw new Error('Erro ao guardar: ' + error.message);
 }
 
-// save com debounce 1.5s para não sobrecarregar a DB
+// ── Save com debounce ─────────────────────────────────────────
 function save(){
-  S.updated_at = new Date().toISOString();
-  // Guardar imediatamente no localStorage como cache local
-  try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-  // Debounce para Supabase
+  // Cache local imediato
+  try{ localStorage.setItem('dossier_local', JSON.stringify(S)); }catch{}
+  // Enviar à DB após 1.5s de inatividade
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(async()=>{
-    try{
-      await saveStateToDB(S);
-    } catch(e){
-      console.warn('Erro ao guardar na DB:', e.message);
-      // Tentar novamente uma vez após 3 segundos
-      setTimeout(async()=>{
-        try{ await saveStateToDB(S); } catch(e2){ console.warn('Retry falhou:', e2.message); }
-      }, 3000);
-    }
+    try{ await _dbSave(S); }
+    catch(e){ console.warn('Save falhou:', e.message); }
   }, 1500);
 }
 
-// ── Sincronização manual ─────────────────────────────────────
-function _syncBtnReset(btn, btnId){
-  btn.textContent = btnId==='homeSyncBtn' ? '☁️ Sincronizar dados' : '☁️ Sincronizar';
-  btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim();
-  btn.disabled = false;
-}
-
+// ── Sincronização manual (botão) ──────────────────────────────
 async function doSync(btnId){
   const btn = document.getElementById(btnId);
-  if(!btn || !S) return;
+  if(!btn) return;
   clearTimeout(_saveTimer);
-  btn.disabled = true;
+  btn.disabled  = true;
   btn.textContent = '⏳ A sincronizar…';
-  btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' saving';
+  btn.className = btn.className.replace(/(ok|err|saving)/g,'').trim() + ' saving';
 
-  try {
-    // 1. Buscar estado da DB (fonte de verdade remota)
-    const remoto = await loadStateFromDB(S.anoLetivo);
-
-    if(remoto){
-      // Comparar timestamps: usar o mais recente
-      const localTs  = S.updated_at  || '';
-      const remotoTs = remoto.updated_at || '';
-
-      if(remotoTs >= localTs){
-        // DB é mais recente (ou igual) → substituir estado local pela DB
-        S = _ensureStateFields(remoto, null);
-        try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-        btn.textContent = '✅ Atualizado!';
-      } else {
-        // Local é mais recente → guardar na DB
-        S.updated_at = new Date().toISOString();
-        await saveStateToDB(S);
-        try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-        btn.textContent = '✅ Guardado na nuvem';
-      }
-    } else {
-      // Nada na DB → fazer upload do local
-      S.updated_at = new Date().toISOString();
-      await saveStateToDB(S);
-      try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-      btn.textContent = '✅ Guardado';
-    }
-
-    const finalText = btn.textContent;
-    // Render antes de atualizar botão (render() recria o DOM)
-    currentWeekOffset = calcCurrentWeekOffset();
-    render();
-    // Re-obter o botão após render() porque o DOM foi recriado
-    const b2 = document.getElementById(btnId);
-    if(b2){
-      b2.textContent = finalText;
-      b2.className = 'sync-btn ok';
-      b2.disabled = false;
-      b2.onclick = ()=>doSync(btnId);
-      setTimeout(()=>_syncBtnReset(b2, btnId), 2500);
-    }
-  } catch(e) {
-    console.error('doSync erro:', e);
-    // Após erro, render() pode ter destruído o botão — re-obter
-    currentWeekOffset = calcCurrentWeekOffset();
-    render();
-    const b2 = document.getElementById(btnId);
-    if(b2){
-      b2.textContent = '❌ Erro de ligação';
-      b2.className = 'sync-btn err';
-      b2.disabled = false;
-      b2.onclick = ()=>doSync(btnId);
-      setTimeout(()=>_syncBtnReset(b2, btnId), 3000);
-    }
-  }
-}
-
-// Forçar pull da DB ignorando timestamps (para recuperar dados de outro dispositivo)
-async function doForcePull(){
-  if(!S || !currentUser) return;
-  clearTimeout(_saveTimer);
   try{
-    const remoto = await loadStateFromDB(S.anoLetivo);
+    // A DB é sempre a fonte de verdade
+    const remoto = await _dbLoad();
     if(remoto){
       S = _ensureStateFields(remoto, null);
-      try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-      currentWeekOffset = calcCurrentWeekOffset();
-      render();
-      alert('✅ Dados carregados da nuvem!');
+      try{ localStorage.setItem('dossier_local', JSON.stringify(S)); }catch{}
     } else {
-      alert('ℹ️ Não há dados na nuvem para este ano letivo.');
+      // Nada na DB — guardar o que temos
+      await _dbSave(S);
+    }
+    currentWeekOffset = calcCurrentWeekOffset();
+    render();
+    const b2 = document.getElementById(btnId);
+    if(b2){
+      b2.textContent = '✅ Sincronizado';
+      b2.className = b2.className.replace(/(ok|err|saving)/g,'').trim() + ' ok';
+      b2.disabled = false;
+      b2.onclick = ()=>doSync(btnId);
+      setTimeout(()=>{
+        const b3 = document.getElementById(btnId);
+        if(b3){ b3.textContent = btnId==='homeSyncBtn'?'☁️ Sincronizar dados':'☁️ Sincronizar'; b3.className=b3.className.replace(/(ok|err|saving)/g,'').trim(); }
+      }, 2500);
     }
   } catch(e){
-    alert('❌ Erro ao carregar da nuvem: ' + e.message);
+    console.error('doSync:', e);
+    const b2 = document.getElementById(btnId);
+    if(b2){
+      b2.textContent = '❌ Erro';
+      b2.className = b2.className.replace(/(ok|err|saving)/g,'').trim() + ' err';
+      b2.disabled = false;
+      b2.onclick = ()=>doSync(btnId);
+      setTimeout(()=>{
+        const b3 = document.getElementById(btnId);
+        if(b3){ b3.textContent = btnId==='homeSyncBtn'?'☁️ Sincronizar dados':'☁️ Sincronizar'; b3.className=b3.className.replace(/(ok|err|saving)/g,'').trim(); }
+      }, 3000);
+    }
   }
 }
 
-// ── Inicializar app após login ────────────────────────────────
-function _ensureStateFields(s, g){
-  if(g){
-    if(!s.professor) s.professor = g.professor||'';
-    if(!s.escola)    s.escola    = g.escola||'';
-    if(!s.logo)      s.logo      = g.logo||'';
+// ── Auto-sync ao voltar ao tab ────────────────────────────────
+let _lastAutoSync = 0;
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden' && S && currentUser){
+    // Guardar ao sair
+    clearTimeout(_saveTimer);
+    try{ localStorage.setItem('dossier_local', JSON.stringify(S)); }catch{}
+    _dbSave(S).catch(()=>{});
   }
-  if(!s.turmas) s.turmas=[];
-  if(!s.horario) s.horario={};
-  if(!s.feriados||!s.feriados.length) s.feriados=calcFeriadosAno(s.anoLetivo);
-  if(!s.pausas) s.pausas=[];
-  if(!s.pausasIntervalos) s.pausasIntervalos=[];
-  if(!s.calendario) s.calendario=calcCalendarioDefault(s.anoLetivo);
-  if(!s.sumarios) s.sumarios={};
-  if(!s.faltas) s.faltas={};
-  if(!s.planificacao) s.planificacao={};
-  if(!s.avaliacao) s.avaliacao={};
-  if(!s.modalidadesSemana) s.modalidadesSemana={};
-  if(!s.lastSumarioTurma) s.lastSumarioTurma=null;
-  if(!s.reunioes) s.reunioes=[];
-  return s;
-}
+  if(document.visibilityState === 'visible' && S && currentUser){
+    // Ao voltar: puxar da DB se passaram mais de 5 segundos
+    const now = Date.now();
+    if(now - _lastAutoSync > 5000){
+      _lastAutoSync = now;
+      _dbLoad().then(remoto=>{
+        if(!remoto) return;
+        S = _ensureStateFields(remoto, null);
+        try{ localStorage.setItem('dossier_local', JSON.stringify(S)); }catch{}
+        currentWeekOffset = calcCurrentWeekOffset();
+        render();
+      }).catch(()=>{});
+    }
+  }
+});
 
+// ── Arrancar app após login ───────────────────────────────────
 async function initApp(){
-  let g = {};
-  try { g = await loadGlobalFromDB(); }
-  catch(e){ console.warn('initApp loadGlobal:', e.message); }
-  const anoAtivo = g.ano_letivo || '2025/2026';
+  let s = null;
 
-  // Carregar da DB (fonte de verdade) e cache local
-  let sDB = null, cacheLocal = null;
-  try { cacheLocal = JSON.parse(localStorage.getItem('dossier_cache__'+anoAtivo)); } catch(e){}
-  try { sDB = await loadStateFromDB(anoAtivo); }
-  catch(e){ console.warn('initApp loadState:', e.message); }
+  // 1. Tentar carregar da DB (fonte de verdade)
+  try{ s = await _dbLoad(); }
+  catch(e){ console.warn('initApp: DB indisponível:', e.message); }
 
-  let s;
-  if(sDB && cacheLocal){
-    // Ambos existem: usar o mais recente pelo timestamp ISO
-    const dbTs    = sDB.updated_at    || '';
-    const localTs = cacheLocal.updated_at || '';
-    s = dbTs >= localTs ? sDB : cacheLocal;
-    console.log('Fonte de dados:', dbTs >= localTs ? 'Supabase' : 'localStorage', {dbTs, localTs});
-  } else {
-    s = sDB || cacheLocal || createFreshState(anoAtivo, g.escola||'', g.logo||'', g.professor||'');
-    console.log('Fonte de dados:', sDB ? 'Supabase (unico)' : cacheLocal ? 'localStorage (unico)' : 'novo estado');
+  // 2. Se DB falhou, usar cache local como fallback
+  if(!s){
+    try{ s = JSON.parse(localStorage.getItem('dossier_local')); }catch{}
   }
 
-  s = _ensureStateFields(s, g);
-  // Sincronizar cache local com os dados vencedores
-  try{ localStorage.setItem('dossier_cache__'+anoAtivo, JSON.stringify(s)); } catch(e){}
-  // Se cache local era mais recente que DB, forcar upload
-  if(cacheLocal && sDB && (cacheLocal.updated_at||'') > (sDB.updated_at||'')){
-    try{ await saveStateToDB(s); } catch(e){ console.warn('initApp resync upload:', e.message); }
-  }
+  // 3. Se não há nada, criar estado novo
+  if(!s) s = createFreshState('2025/2026', '', '', '');
 
-  S = s;
+  S = _ensureStateFields(s, null);
+  // Garantir cache local actualizado
+  try{ localStorage.setItem('dossier_local', JSON.stringify(S)); }catch{}
+
   currentTab = isMobile() ? 'home' : 'painel';
   currentWeekOffset = calcCurrentWeekOffset();
   render();
 }
-
 // ── Render do ecrã de login ───────────────────────────────────
 function renderLogin(mode='login'){
   const app = document.getElementById('app');
@@ -677,7 +577,7 @@ function loadGlobal(){ try{ return JSON.parse(localStorage.getItem(GLOBAL_KEY))|
 function saveGlobal(g){ try{ localStorage.setItem(GLOBAL_KEY, JSON.stringify(g)); }catch{} }
 function stateKey(ano){ return STATE_PREFIX + ano; }
 function loadStateForYear(ano){ try{ return JSON.parse(localStorage.getItem('dossier_cache__'+ano))||null; }catch{ return null; } }
-function saveState(s){ /* substituído por saveStateToDB via save() */ }
+function saveState(s){ /* alias */ save(); }
 
 function createFreshState(anoLetivo, escola, logo, professor){
   return {
@@ -790,12 +690,12 @@ function attachHomeEvents(){
   const sb=document.getElementById('homeSyncBtn');
   if(sb) sb.addEventListener('click',()=>doSync('homeSyncBtn'));
   const pb=document.getElementById('homePullBtn');
-  if(pb) pb.addEventListener('click',()=>doForcePull());
+  if(pb) pb.addEventListener('click',()=>doSync('pullBtn'));
   const lb=document.getElementById('homeLogoutBtn');
   if(lb) lb.addEventListener('click',async()=>{
     if(confirm('Tens a certeza que queres terminar a sessão?')){
       clearTimeout(_saveTimer);
-      try{ await saveStateToDB(S); }catch{}
+      try{ await _dbSave(S); }catch{}
       await doLogout();
     }
   });
@@ -3608,12 +3508,12 @@ function attachEvents(){
   const syncBtn=document.getElementById('syncBtn');
   if(syncBtn) syncBtn.addEventListener('click',()=>doSync('syncBtn'));
   const pullBtn=document.getElementById('pullBtn');
-  if(pullBtn) pullBtn.addEventListener('click',()=>doForcePull());
+  if(pullBtn) pullBtn.addEventListener('click',()=>doSync('pullBtn'));
   const logoutBtn=document.getElementById('logoutBtn');
   if(logoutBtn) logoutBtn.addEventListener('click',async()=>{
     if(confirm('Tens a certeza que queres terminar a sessão?')){
       clearTimeout(_saveTimer);
-      try{ await saveStateToDB(S); }catch{}
+      try{ await _dbSave(S); }catch{}
       await doLogout();
     }
   });
@@ -3623,11 +3523,11 @@ function attachEvents(){
     if(novoAno===S.anoLetivo) return;
     // Guardar estado actual na DB
     clearTimeout(_saveTimer);
-    try{ await saveStateToDB(S); }catch{}
+    try{ await _dbSave(S); }catch{}
     // Carregar novo ano
     const escola=S.escola; const logo=S.logo; const professor=S.professor||'';
     let novo = null;
-    try{ novo = await loadStateFromDB(novoAno); }catch{}
+    try{ novo = await _dbLoad(); }catch{}
     if(!novo) { try{ novo=JSON.parse(localStorage.getItem('dossier_cache__'+novoAno)); }catch{} }
     if(!novo) novo=createFreshState(novoAno, escola, logo, professor);
     novo.escola=escola; novo.logo=logo; novo.professor=professor;
@@ -5373,10 +5273,10 @@ function getCurrentWeekDates(){
   return dates;
 }
 
-// Registar Service Worker (PWA)
+// Desregistar qualquer Service Worker antigo (evita cache stale)
 if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  navigator.serviceWorker.getRegistrations().then(regs=>{
+    regs.forEach(r=>r.unregister());
   });
 }
 
@@ -5391,14 +5291,14 @@ document.addEventListener('visibilitychange', ()=>{
     // Guardar quando sai do tab
     clearTimeout(_saveTimer);
     try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-    saveStateToDB(S).catch(()=>{});
+    _dbSave(S).catch(()=>{});
   }
   if(document.visibilityState === 'visible' && S && currentUser){
     // Quando volta ao tab: sincronizar com a DB se passaram mais de 10 segundos
     const now = Date.now();
     if(now - _lastVisibleSync > 10000){
       _lastVisibleSync = now;
-      loadStateFromDB(S.anoLetivo).then(remoto => {
+      _dbLoad().then(remoto => {
         if(!remoto) return;
         const remotoTs = remoto.updated_at || '';
         const localTs  = S.updated_at || '';
@@ -5417,8 +5317,8 @@ document.addEventListener('visibilitychange', ()=>{
 window.addEventListener('pagehide', ()=>{
   if(S && currentUser){
     clearTimeout(_saveTimer);
-    try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-    saveStateToDB(S).catch(()=>{});
+    try{ localStorage.setItem('dossier_local', JSON.stringify(S)); }catch{}
+    _dbSave(S).catch(()=>{});
   }
 });
 </script>
