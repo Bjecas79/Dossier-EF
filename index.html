@@ -668,7 +668,7 @@ function renderHome(){
       ${S.logo
         ? `<img class="home-icon" src="${S.logo}" alt="Logotipo">`
         : `<img class="home-icon" src="icons/icon-192x192.png" alt="Ícone" onerror="this.style.display='none'">`}
-      <div class="home-title">Dossier de EF</div>
+      <div class="home-title">DOSSIER DE EF</div>
       ${S.professor ? `<div style="font-size:15px;font-weight:600;color:#93c5fd;margin-top:2px">${esc(S.professor)}</div>` : ''}
       <div class="home-user">👤 ${currentUser ? esc(currentUser.email) : ''}</div>
     </div>
@@ -719,9 +719,9 @@ function renderHeader(){
     return `<div class="header" style="padding:0 10px;gap:0">
       ${mobileBack}
       <div style="flex:1;display:flex;align-items:center;overflow:hidden">
-        <div style="flex:1;text-align:center;font-size:17px;font-weight:800;color:#60a5fa;letter-spacing:-0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">DOSSIER EF</div>
+        <div style="flex:1;text-align:center;font-size:22px;font-weight:800;color:#60a5fa;letter-spacing:-0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">DOSSIER EF</div>
         <div style="width:1px;height:24px;background:rgba(255,255,255,0.15);flex-shrink:0"></div>
-        <div style="flex:1;text-align:center;font-size:17px;font-weight:700;color:#93c5fd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px">${esc(S.professor||'')}</div>
+        <div style="flex:1;text-align:center;font-size:17px;font-weight:700;color:#1a2d4a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px">${esc(S.professor||'')}</div>
       </div>
       <span id="syncIndicator" style="font-size:10px;font-weight:500;transition:all 0.3s;white-space:nowrap;flex-shrink:0"></span>
     </div>`;
