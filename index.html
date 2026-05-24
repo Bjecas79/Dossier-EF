@@ -489,7 +489,10 @@ async function initApp(){
   currentWeekOffset = calcCurrentWeekOffset();
   render();
   
-// ── Render do ecrã de login ───────────────────────────────────
+render();
+}
+
+// ── Render do ecrã de login  ───────────────────────────────────
 function renderLogin(mode='login'){
   const app = document.getElementById('app');
   const isLogin = mode==='login';
