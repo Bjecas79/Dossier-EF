@@ -173,6 +173,14 @@
   @media(max-width:600px){
     .turma-grid{grid-template-columns:1fr}
     .sidebar{display:none}
+    /* Cabeçalho — esconder campos que causam scroll horizontal */
+    .school-name{display:none}
+    .prof-name{display:none}
+    .year-select{display:none}
+    .header-right .user-badge{display:none}
+    /* "Desenvolvido por Hugo Simões" */
+    .header-right > div:first-child{display:none}
+    .header{padding:0 12px;gap:10px;overflow:hidden}
     /* Plano Semanal — encaixar tabela no ecrã mobile */
     .schedule-table{font-size:9px}
     .schedule-table th{padding:4px 2px;font-size:8px}
@@ -183,6 +191,11 @@
     .aula-espaco{font-size:7px}
     .aula-modal{font-size:7px}
     .aula-feriado{font-size:7px;min-height:38px;padding:2px}
+    /* Horário Semanal Base — calendário */
+    .horario-table{font-size:8px;table-layout:fixed;width:100%}
+    .horario-table th{padding:3px 1px;font-size:7px}
+    .horario-table td{padding:1px}
+    .horario-select{font-size:7px;padding:1px 0}
   }
   @media(max-width:700px){
     .cal-layout{display:flex!important;flex-direction:column!important}
@@ -3041,11 +3054,11 @@ function renderCalendario(){
       <div class="card cal-horario-card">
         <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px">🗓️ Horário Semanal Base</div>
         <p style="font-size:11px;color:var(--gray);margin-bottom:12px">Defina a turma e espaço para cada bloco. Este horário gera automaticamente as aulas previstas.</p>
-        <div style="overflow-x:auto">
-        <table class="horario-table">
-          <thead><tr><th>Hora</th>${DIAS.map(d=>`<th>${d}</th>`).join('')}</tr></thead>
+        <div style="overflow-x:hidden">
+        <table class="horario-table" style="${isMobile()?'table-layout:fixed;width:100%':''}">
+          <thead><tr><th style="${isMobile()?'width:30px':''}">${isMobile()?'H':'Hora'}</th>${DIAS.map(d=>`<th>${isMobile()?d.slice(0,3):d}</th>`).join('')}</tr></thead>
           <tbody>${BLOCOS.map((b,bi)=>`<tr>
-            <td style="font-size:10px;white-space:nowrap;background:var(--gray2);font-weight:600;color:var(--gray);padding:4px 6px">${b}</td>
+            <td style="font-size:${isMobile()?'7px':'10px'};white-space:${isMobile()?'normal':'nowrap'};background:var(--gray2);font-weight:600;color:var(--gray);padding:${isMobile()?'2px 1px':'4px 6px'};word-break:break-all;line-height:1.2">${isMobile()?b.slice(0,5):b}</td>
             ${DIAS.map((d,di)=>{
               const slot=`${di}_${bi}`;
               const aula=S.horario[slot]||{};
