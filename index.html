@@ -335,22 +335,14 @@ async function loadStateFromDB(ano){
 }
 
 async function saveStateToDB(s){
-  const { error: e1 } = await supa.from('dossier_data').upsert({
+  await supa.from('dossier_data').upsert({
     user_id: currentUser.id,
     ano_letivo: s.anoLetivo,
     dados: s,
     updated_at: new Date().toISOString()
   }, { onConflict: 'user_id,ano_letivo' });
-  if(e1) console.warn('Erro dossier_data:', e1.message);
-  const { error: e2 } = await supa.from('dossier_global').upsert({
-    user_id: currentUser.id,
-    escola: s.escola||'',
-    professor: s.professor||'',
-    logo: s.logo||'',
-    ano_letivo: s.anoLetivo||'2025/2026',
-    updated_at: new Date().toISOString()
-  }, { onConflict: 'user_id' });
-  if(e2) console.warn('Erro dossier_global:', e2.message);
+  // Actualizar globals
+  await saveGlobalToDB({ escola:s.escola, professor:s.professor, logo:s.logo, anoLetivo:s.anoLetivo });
 }
 
 // save com debounce 1.5s para não sobrecarregar a DB
@@ -426,19 +418,18 @@ async function doSync(btnId){
     }
   }
 
-  // Desktop: pull+push bidirecional
+  // Desktop: pull+push bidirecional (igual ao mobile)
   btn.textContent = '⏳ A sincronizar…';
   btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' saving';
   try {
     const remoto = await loadStateFromDB(S.anoLetivo);
     if(remoto && (remoto.updated_at||'') > (S.updated_at||'')){
-      S = remoto;
-      ['turmas','horario','sumarios','faltas','planificacao','avaliacao','modalidadesSemana','reunioes','pausas','pausasIntervalos'].forEach(k=>{ if(!S[k]) S[k]=k.includes('Semana')||k==='planificacao'||k==='avaliacao'?{}:[]; });
-      if(!S.feriados||!S.feriados.length) S.feriados=calcFeriadosAno(S.anoLetivo);
-      if(!S.calendario) S.calendario=calcCalendarioDefault(S.anoLetivo);
+      // Remoto mais recente: receber dados
+      S = _ensureStateFields(remoto, null);
       try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
       btn.textContent = '✅ Atualizado!';
     } else {
+      // Local mais recente (ou igual): guardar na DB
       S.updated_at = new Date().toISOString();
       await saveStateToDB(S);
       try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
@@ -448,36 +439,27 @@ async function doSync(btnId){
     currentWeekOffset = calcCurrentWeekOffset();
     render();
     const b2 = document.getElementById(btnId);
-    if(b2){ b2.textContent = btn.textContent; b2.className='sync-btn ok'; b2.disabled=false; b2.addEventListener('click',()=>doSync(btnId)); setTimeout(()=>_syncBtnReset(b2,btnId),2500); }
+    if(b2){
+      b2.textContent = btn.textContent;
+      b2.className = 'sync-btn ok';
+      b2.disabled = false;
+      b2.addEventListener('click', ()=>doSync(btnId));
+      setTimeout(()=>_syncBtnReset(b2, btnId), 2500);
+    }
   } catch(e) {
     btn.textContent = '❌ Erro';
     btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' err';
-    setTimeout(()=>_syncBtnReset(btn,btnId),3000);
+    setTimeout(()=>_syncBtnReset(btn, btnId), 3000);
   }
 }
 
 // ── Inicializar app após login ────────────────────────────────
-async function initApp(){
-  let g = {};
-  try { g = await loadGlobalFromDB(); } catch(e){}
-  const anoAtivo = g.ano_letivo || '2025/2026';
-
-  // Carregar DB e cache em paralelo; ganha o mais recente
-  let sDB = null, cacheLocal = null;
-  try { cacheLocal = JSON.parse(localStorage.getItem('dossier_cache__'+anoAtivo)); }catch{}
-  try { sDB = await loadStateFromDB(anoAtivo); } catch(e){}
-  let s;
-  if(sDB && cacheLocal){
-    s = (sDB.updated_at||'') >= (cacheLocal.updated_at||'') ? sDB : cacheLocal;
-  } else {
-    s = sDB || cacheLocal || createFreshState(anoAtivo, g.escola||'', g.logo||'', g.professor||'');
+function _ensureStateFields(s, g){
+  if(g){
+    if(!s.professor) s.professor = g.professor||'';
+    if(!s.escola)    s.escola    = g.escola||'';
+    if(!s.logo)      s.logo      = g.logo||'';
   }
-  try{ localStorage.setItem('dossier_cache__'+anoAtivo, JSON.stringify(s)); }catch{}
-
-  // Garantir campos
-  if(!s.professor) s.professor = g.professor||'';
-  if(!s.escola)    s.escola    = g.escola||'';
-  if(!s.logo)      s.logo      = g.logo||'';
   if(!s.turmas) s.turmas=[];
   if(!s.horario) s.horario={};
   if(!s.feriados||!s.feriados.length) s.feriados=calcFeriadosAno(s.anoLetivo);
@@ -491,16 +473,38 @@ async function initApp(){
   if(!s.modalidadesSemana) s.modalidadesSemana={};
   if(!s.lastSumarioTurma) s.lastSumarioTurma=null;
   if(!s.reunioes) s.reunioes=[];
+  return s;
+}
+
+async function initApp(){
+  let g = {};
+  try { g = await loadGlobalFromDB(); } catch(e){}
+  const anoAtivo = g.ano_letivo || '2025/2026';
+
+  // Carregar da DB (fonte de verdade) e cache local em paralelo
+  let sDB = null, cacheLocal = null;
+  try { cacheLocal = JSON.parse(localStorage.getItem('dossier_cache__'+anoAtivo)); }catch{}
+  try { sDB = await loadStateFromDB(anoAtivo); } catch(e){}
+
+  let s;
+  if(sDB && cacheLocal){
+    // Ambos existem: usar o mais recente pelo timestamp
+    s = (sDB.updated_at||'') >= (cacheLocal.updated_at||'') ? sDB : cacheLocal;
+  } else {
+    s = sDB || cacheLocal || createFreshState(anoAtivo, g.escola||'', g.logo||'', g.professor||'');
+  }
+
+  s = _ensureStateFields(s, g);
+  // Sincronizar cache local com os dados vencedores
+  try{ localStorage.setItem('dossier_cache__'+anoAtivo, JSON.stringify(s)); }catch{}
 
   S = s;
   currentTab = isMobile() ? 'home' : 'painel';
   currentWeekOffset = calcCurrentWeekOffset();
   render();
-  
-render();
 }
 
-// ── Render do ecrã de login  ───────────────────────────────────
+// ── Render do ecrã de login ───────────────────────────────────
 function renderLogin(mode='login'){
   const app = document.getElementById('app');
   const isLogin = mode==='login';
@@ -5332,6 +5336,26 @@ if('serviceWorker' in navigator){
 
 // Arrancar com autenticação
 initAuth();
+
+// Guardar imediatamente quando o tab é fechado ou minimizado (iOS/Android/desktop)
+// Usa visibilitychange (mais fiável em mobile) + pagehide como fallback
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden' && S && currentUser){
+    clearTimeout(_saveTimer);
+    // sendBeacon não suporta JSON body complexo; usamos saveStateToDB com best-effort
+    // Em mobile o navegador pode matar o processo mas o cache local fica salvo
+    try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+    // Tentativa async — pode não completar se o processo for terminado
+    saveStateToDB(S).catch(()=>{});
+  }
+});
+window.addEventListener('pagehide', ()=>{
+  if(S && currentUser){
+    clearTimeout(_saveTimer);
+    try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+    saveStateToDB(S).catch(()=>{});
+  }
+});
 </script>
 </body>
 </html>
