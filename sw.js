@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dossier-ef-v2';
+const CACHE_NAME = 'dossier-ef-v3';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
