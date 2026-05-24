@@ -434,24 +434,32 @@ async function doSync(btnId){
       btn.textContent = '✅ Guardado';
     }
 
-    btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' ok';
+    const finalText = btn.textContent;
+    // Render antes de atualizar botão (render() recria o DOM)
     currentWeekOffset = calcCurrentWeekOffset();
     render();
-    // Re-obter o botão após render()
+    // Re-obter o botão após render() porque o DOM foi recriado
     const b2 = document.getElementById(btnId);
     if(b2){
-      b2.textContent = btn.textContent;
+      b2.textContent = finalText;
       b2.className = 'sync-btn ok';
       b2.disabled = false;
-      b2.addEventListener('click', ()=>doSync(btnId));
+      b2.onclick = ()=>doSync(btnId);
       setTimeout(()=>_syncBtnReset(b2, btnId), 2500);
     }
   } catch(e) {
     console.error('doSync erro:', e);
-    btn.textContent = '❌ Erro de ligação';
-    btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' err';
-    btn.disabled = false;
-    setTimeout(()=>_syncBtnReset(btn, btnId), 3000);
+    // Após erro, render() pode ter destruído o botão — re-obter
+    currentWeekOffset = calcCurrentWeekOffset();
+    render();
+    const b2 = document.getElementById(btnId);
+    if(b2){
+      b2.textContent = '❌ Erro de ligação';
+      b2.className = 'sync-btn err';
+      b2.disabled = false;
+      b2.onclick = ()=>doSync(btnId);
+      setTimeout(()=>_syncBtnReset(b2, btnId), 3000);
+    }
   }
 }
 
@@ -5377,14 +5385,33 @@ initAuth();
 
 // Guardar imediatamente quando o tab é fechado ou minimizado (iOS/Android/desktop)
 // Usa visibilitychange (mais fiável em mobile) + pagehide como fallback
+let _lastVisibleSync = 0;
 document.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState === 'hidden' && S && currentUser){
+    // Guardar quando sai do tab
     clearTimeout(_saveTimer);
-    // sendBeacon não suporta JSON body complexo; usamos saveStateToDB com best-effort
-    // Em mobile o navegador pode matar o processo mas o cache local fica salvo
     try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-    // Tentativa async — pode não completar se o processo for terminado
     saveStateToDB(S).catch(()=>{});
+  }
+  if(document.visibilityState === 'visible' && S && currentUser){
+    // Quando volta ao tab: sincronizar com a DB se passaram mais de 10 segundos
+    const now = Date.now();
+    if(now - _lastVisibleSync > 10000){
+      _lastVisibleSync = now;
+      loadStateFromDB(S.anoLetivo).then(remoto => {
+        if(!remoto) return;
+        const remotoTs = remoto.updated_at || '';
+        const localTs  = S.updated_at || '';
+        if(remotoTs > localTs){
+          // DB tem dados mais recentes — atualizar silenciosamente
+          S = _ensureStateFields(remoto, null);
+          try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+          currentWeekOffset = calcCurrentWeekOffset();
+          render();
+          console.log('Auto-sync: dados atualizados da nuvem');
+        }
+      }).catch(()=>{});
+    }
   }
 });
 window.addEventListener('pagehide', ()=>{
