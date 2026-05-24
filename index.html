@@ -967,11 +967,11 @@ function renderFitescola(turma){
   const stickyBg='#0f2744'; // mesma cor de fundo dos th fixos
 
   const theadRow1='<tr>'
-    +'<th rowspan="2" style="'+thL+';width:'+stickyNumW+'px;position:sticky;top:0;left:0;z-index:6">#</th>'
-    +'<th rowspan="2" style="'+thL+';min-width:'+stickyNomeW+'px;position:sticky;top:0;left:'+leftNome+'px;z-index:6">Nome</th>'
-    +'<th rowspan="2" style="'+thS+';width:'+stickyGenW+'px;position:sticky;top:0;left:'+leftGen+'px;z-index:6">Gén.</th>'
-    +'<th rowspan="2" style="'+thS+';width:'+stickyIdW+'px;position:sticky;top:0;left:'+leftId+'px;z-index:6">Id.</th>'
-    +'<th rowspan="2" style="background:#1e293b;border:none;width:'+stickySepW+'px;position:sticky;top:0;left:'+leftSep+'px;z-index:6"></th>'
+    +'<th rowspan="2" style="'+thL+';width:'+stickyNumW+'px;position:sticky;top:0;left:0;z-index:10">#</th>'
+    +'<th rowspan="2" style="'+thL+';min-width:'+stickyNomeW+'px;position:sticky;top:0;left:'+leftNome+'px;z-index:10">Nome</th>'
+    +'<th rowspan="2" style="'+thS+';width:'+stickyGenW+'px;position:sticky;top:0;left:'+leftGen+'px;z-index:10">Gén.</th>'
+    +'<th rowspan="2" style="'+thS+';width:'+stickyIdW+'px;position:sticky;top:0;left:'+leftId+'px;z-index:10">Id.</th>'
+    +'<th rowspan="2" style="background:#1e293b;border:none;width:'+stickySepW+'px;position:sticky;top:0;left:'+leftSep+'px;z-index:10"></th>'
     +'<th colspan="3" style="'+thS+';position:sticky;top:0;z-index:4;background:#1e3a8a;font-size:13px;letter-spacing:0.5px">Resumo</th>'
     +'<th rowspan="2" style="background:#1e293b;border:none;width:8px;position:sticky;top:0;z-index:4"></th>'
     +FITESCOLA_TESTES.map(t=>'<th colspan="2" style="'+thS+';position:sticky;top:0;z-index:4">'+t.label+'<br><small style="font-weight:400;opacity:0.75">('+t.unit+')</small></th>').join('')
@@ -1193,13 +1193,15 @@ function renderSem1AM(){
 
   const thBase='padding:6px 5px;font-weight:700;border:1px solid rgba(255,255,255,0.15);text-align:center;font-size:10px;color:#fff;';
   const thStyle=(bg,colspan,txt,rowspan)=>`<th ${rowspan?`rowspan="${rowspan}"`:''}${colspan?`colspan="${colspan}"`:''}style="${thBase}background:${bg};position:sticky;top:0;z-index:4">${txt}</th>`;
+  const thStyleFixed=(bg,txt,rowspan,left)=>`<th rowspan="${rowspan}" style="${thBase}background:${bg};position:sticky;top:0;left:${left}px;z-index:10">${txt}</th>`;
   const thStyle2=(bg,colspan,txt)=>`<th ${colspan?`colspan="${colspan}"`:''}style="${thBase}background:${bg};position:sticky;top:33px;z-index:4">${txt}</th>`;
   const thStyle3=(bg,colspan,txt)=>`<th ${colspan?`colspan="${colspan}"`:''}style="${thBase}background:${bg};position:sticky;top:66px;z-index:4">${txt}</th>`;
+  const amSemW=60, amAlunoW=130;
 
   const thead=`
     <tr>
-      ${thStyle('#1a2d4a',0,'Semestre',3)}
-      ${thStyle('#1a2d4a',0,'Aluno',3)}
+      ${thStyleFixed('#1a2d4a','Semestre',3,0)}
+      ${thStyleFixed('#1a2d4a','Aluno',3,amSemW)}
       ${thStyle('#1a2d4a',0,'Ano',3)}
       ${thStyle('#1a2d4a',0,'Turma',3)}
       ${thStyle('#1a2d4a',0,'Nº',3)}
@@ -1300,14 +1302,14 @@ function renderSem1AM(){
     const mediaLabel=labelFromReal(media,ano);
 
     return `<tr style="background:${bg}" data-rid="${esc(rid)}" data-ano="${esc(ano)}">
-      <td style="padding:2px 4px;border:1px solid var(--border);text-align:center;background:${bg}">
+      <td style="padding:2px 4px;border:1px solid var(--border);text-align:center;background:${bg};position:sticky;left:0;z-index:2;box-shadow:1px 0 3px rgba(0,0,0,0.05)">
         <select class="am-meta" data-rid="${esc(rid)}" data-meta="semestre" style="width:52px;border:1px solid #cbd5e1;border-radius:3px;padding:2px 2px;font-size:11px;color:#0f172a;background:transparent;outline:none;cursor:pointer">
           <option value="">—</option>
           <option value="1º"${(linha.semestre||'')==='1º'?' selected':''}>1º</option>
           <option value="2º"${(linha.semestre||'')==='2º'?' selected':''}>2º</option>
         </select>
       </td>
-      <td style="padding:2px 4px;border:1px solid var(--border);position:sticky;left:0;z-index:2;background:${bg};box-shadow:2px 0 4px rgba(0,0,0,0.06)">
+      <td style="padding:2px 4px;border:1px solid var(--border);position:sticky;left:${amSemW}px;z-index:2;background:${bg};box-shadow:2px 0 4px rgba(0,0,0,0.06)">
         <input type="text" class="am-meta" data-rid="${esc(rid)}" data-meta="aluno" value="${esc(linha.aluno||'')}" placeholder="Nome do aluno" style="width:120px;border:1px solid #cbd5e1;border-radius:3px;padding:2px 4px;font-size:11px;font-weight:500;color:#0f172a;background:transparent;outline:none">
       </td>
       <td style="padding:2px 4px;border:1px solid var(--border);text-align:center;background:${bg}">
@@ -4284,7 +4286,7 @@ function attachEvents(){
   });
 
   // === EXPORTAR PDF — função partilhada (jsPDF autoTable) ===
-  async function exportTabelaPdf(btn, fileName){
+  async function exportTabelaPdf(btn, fileName, turmaLabel){
     const originalHtml=btn.innerHTML;
     btn.innerHTML='⏳ A gerar...';
     btn.disabled=true;
@@ -4309,12 +4311,60 @@ function attachEvents(){
       const { jsPDF }=window.jspdf;
       const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
 
+      // Altura do cabeçalho reservada no topo de cada página
+      const HEADER_H = 18;
+
+      // Função que desenha o cabeçalho em cada página
+      function drawPageHeader(){
+        const pageW = pdf.internal.pageSize.getWidth();
+        // Fundo azul-escuro
+        pdf.setFillColor(26, 45, 74);
+        pdf.rect(0, 0, pageW, HEADER_H, 'F');
+
+        // Título à esquerda
+        pdf.setFontSize(10);
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('DOSSIER DE EDUCAÇÃO FÍSICA', 5, 7);
+
+        // Escola (linha 2 esquerda)
+        pdf.setFontSize(6.5);
+        pdf.setFont(undefined, 'normal');
+        pdf.setTextColor(180, 210, 255);
+        pdf.text(S.escola || '', 5, 12.5);
+
+        // Professor (centro)
+        if(S.professor){
+          pdf.setFontSize(8);
+          pdf.setFont(undefined, 'bold');
+          pdf.setTextColor(255, 255, 255);
+          const profText = S.professor;
+          pdf.text(profText, pageW / 2, 7, { align: 'center' });
+        }
+
+        // Ano letivo e turma (direita)
+        pdf.setFontSize(7.5);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(255, 255, 255);
+        pdf.text('Ano letivo: ' + (S.anoLetivo || ''), pageW - 5, 7, { align: 'right' });
+        if(turmaLabel){
+          pdf.setFontSize(8.5);
+          pdf.setTextColor(147, 197, 253);
+          pdf.text('Turma: ' + turmaLabel, pageW - 5, 13, { align: 'right' });
+        }
+
+        // Linha separadora
+        pdf.setDrawColor(96, 165, 250);
+        pdf.setLineWidth(0.4);
+        pdf.line(0, HEADER_H, pageW, HEADER_H);
+      }
+
       // Extrair cabeçalhos e células directamente do DOM
       // Usar o plugin autoTable com o elemento HTML directamente
       pdf.autoTable({
         html: table,
-        startY: 6,
-        margin: {left:4, right:4, top:6, bottom:6},
+        startY: HEADER_H + 3,
+        margin: {left:4, right:4, top: HEADER_H + 3, bottom:8},
         theme: 'grid',
         tableWidth: 'wrap',
         styles:{
@@ -4364,13 +4414,17 @@ function attachEvents(){
           }
         },
         didDrawPage(data){
+          // Cabeçalho em todas as páginas
+          drawPageHeader();
           // Rodapé com nome do ficheiro e página
           pdf.setFontSize(6);
           pdf.setTextColor(150);
+          pdf.setFont(undefined,'normal');
           const pageNum=pdf.internal.getCurrentPageInfo().pageNumber;
           const total=pdf.internal.getNumberOfPages();
+          const pageW=pdf.internal.pageSize.getWidth();
           pdf.text(`${fileName.replace('.pdf','')}   |   Pág. ${pageNum}/${total}`,
-            data.settings.margin.left, 207);
+            data.settings.margin.left, pageW > 200 ? 207 : 145);
         },
         // Escalar automaticamente para caber em A4 landscape
         tableWidth:'auto',
@@ -4395,7 +4449,7 @@ function attachEvents(){
   // === EXPORTAR PDF — AV. ALUNOS A.M. ===
   const amExportPdfBtn=document.getElementById('amExportPdfBtn');
   if(amExportPdfBtn) amExportPdfBtn.addEventListener('click',()=>{
-    exportTabelaPdf(amExportPdfBtn, `av_alunos_am_${new Date().toISOString().slice(0,10)}.pdf`);
+    exportTabelaPdf(amExportPdfBtn, `av_alunos_am_${new Date().toISOString().slice(0,10)}.pdf`, 'Todas as Turmas');
   });
 
   // === EXPORTAR EXCEL — AV. ALUNOS A.M. ===
@@ -4526,7 +4580,9 @@ function attachEvents(){
   const exportPdfAvalBtn=document.getElementById('exportPdfAvalBtn');
   if(exportPdfAvalBtn) exportPdfAvalBtn.addEventListener('click',()=>{
     const subLabel=(filterAvaliacaoSub||'avaliacao').replace(/[^a-z0-9]/gi,'_');
-    exportTabelaPdf(exportPdfAvalBtn, `avaliacao_${subLabel}_${new Date().toISOString().slice(0,10)}.pdf`);
+    const turmaAtual=S.turmas.find(t=>t.id==filterAvaliacaoTurma);
+    const turmaLabel=turmaAtual?turmaAtual.nome:'';
+    exportTabelaPdf(exportPdfAvalBtn, `avaliacao_${subLabel}_${new Date().toISOString().slice(0,10)}.pdf`, turmaLabel);
   });
 
   document.querySelectorAll('.nota-professor').forEach(el=>{
@@ -5207,6 +5263,10 @@ function fixStickyThead(){
       th.style.zIndex=th.style.zIndex||'4';
     });
     cumTop+=row.getBoundingClientRect().height;
+  });
+  // Garantir que colunas com left (sticky horizontal) ficam sempre acima das outras
+  thead.querySelectorAll('th[style*="left"]').forEach(th=>{
+    th.style.zIndex='10';
   });
   // Também garantir que a altura máxima do wrapper é correta
   const topOfWrapper=wrapper.getBoundingClientRect().top;
