@@ -2,7 +2,7 @@
   "name": "Dossier de EF",
   "short_name": "Dossier EF",
   "description": "Dossier digital para Professor de Educação Física — Bocage",
-  "start_url": "./Dossier-EF_5_6.html",
+  "start_url": "/Dossier-EF/Dossier-EF_5_6.html",
   "display": "standalone",
   "background_color": "#1a2d4a",
   "theme_color": "#1a2d4a",
