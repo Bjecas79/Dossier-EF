@@ -173,6 +173,16 @@
   @media(max-width:600px){
     .turma-grid{grid-template-columns:1fr}
     .sidebar{display:none}
+    /* Plano Semanal — encaixar tabela no ecrã mobile */
+    .schedule-table{font-size:9px}
+    .schedule-table th{padding:4px 2px;font-size:8px}
+    .schedule-table td{min-width:0;padding:0}
+    .time-col{width:34px;min-width:34px;max-width:34px;font-size:8px;padding:3px 2px;white-space:normal;word-break:break-all;line-height:1.2}
+    .aula-cell{padding:3px 2px;min-height:38px;font-size:8px}
+    .aula-turma{font-size:8px}
+    .aula-espaco{font-size:7px}
+    .aula-modal{font-size:7px}
+    .aula-feriado{font-size:7px;min-height:38px;padding:2px}
   }
   @media(max-width:700px){
     .cal-layout{display:flex!important;flex-direction:column!important}
@@ -2821,15 +2831,19 @@ function renderSemanal(){
       </div>
     </div>
     ${!semana?`<div class="empty-msg">Configure o Calendário Letivo para ver as semanas</div>`:`
-    <div style="overflow-x:auto">
-    <table class="schedule-table">
-      <thead><tr><th style="width:90px">Hora</th>${DIAS.map((d,i)=>{
+    <div style="${isMobile()?'overflow-x:hidden':'overflow-x:auto'}">
+    <table class="schedule-table" style="${isMobile()?'table-layout:fixed;width:100%':''}">
+      <thead><tr><th style="${isMobile()?'width:34px':'width:90px'}">Hora</th>${DIAS.map((d,i)=>{
         const dayDate = semana[i];
         const wx = isCurrentWeek && weatherCache[dayDate];
-        return `<th>${d}<br><small style="font-weight:400;opacity:0.8">${fmtDate(dayDate)}</small>${wx?`<br><span title="${wx.desc} · ${wx.tempMin}°–${wx.tempMax}°C" style="font-size:22px;cursor:default;line-height:1.4">${wx.icon}</span>`:''}`;
+        const mob=isMobile();
+        const dLabel=mob?d.slice(0,3):d;
+        const dateLabel=mob?fmtDate(dayDate).slice(0,5):fmtDate(dayDate);
+        const wxHtml=wx?(mob?`<br><span title="${wx.desc} · ${wx.tempMin}°–${wx.tempMax}°C" style="font-size:14px;cursor:default;line-height:1.3">${wx.icon}</span>`:`<br><span title="${wx.desc} · ${wx.tempMin}°–${wx.tempMax}°C" style="font-size:22px;cursor:default;line-height:1.4">${wx.icon}</span>`):'';
+        return `<th>${dLabel}<br><small style="font-weight:400;opacity:0.8">${dateLabel}</small>${wxHtml}`;
       }).join('')}</tr></thead>
       <tbody>${BLOCOS.map((bloco,bi)=>`<tr>
-        <td class="time-col">${bloco}</td>
+        <td class="time-col">${isMobile()?bloco.slice(0,5):bloco}</td>
         ${DIAS.map((d,di)=>{
           const slot=`${di}_${bi}`;
           const aula=S.horario[slot];
