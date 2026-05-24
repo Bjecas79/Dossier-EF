@@ -267,7 +267,18 @@ async function doLogout(){
   await supa.auth.signOut();
 }
 
-// ── Persistência Supabase (substitui localStorage) ────────────
+// ── Persistência Supabase ─────────────────────────────────────
+// Lê a row completa (incluindo updated_at da coluna, não do JSON)
+async function loadRowFromDB(ano){
+  const { data, error } = await supa.from('dossier_data')
+    .select('dados, updated_at')
+    .eq('user_id', currentUser.id)
+    .eq('ano_letivo', ano)
+    .single();
+  if(error || !data) return null;
+  return { dados: data.dados, updated_at: data.updated_at };
+}
+
 async function loadGlobalFromDB(){
   const { data } = await supa.from('dossier_global').select('*').eq('user_id', currentUser.id).single();
   return data || {};
@@ -284,45 +295,36 @@ async function saveGlobalToDB(g){
   }, { onConflict: 'user_id' });
 }
 
-async function loadStateFromDB(ano){
-  const { data } = await supa.from('dossier_data')
-    .select('dados')
-    .eq('user_id', currentUser.id)
-    .eq('ano_letivo', ano)
-    .single();
-  return data ? data.dados : null;
-}
-
 async function saveStateToDB(s){
-  s.updated_at = new Date().toISOString(); // timestamp para deteção de versão mais recente
-  await supa.from('dossier_data').upsert({
+  const now = new Date().toISOString();
+  const { error } = await supa.from('dossier_data').upsert({
     user_id: currentUser.id,
     ano_letivo: s.anoLetivo,
     dados: s,
-    updated_at: new Date().toISOString()
+    updated_at: now
   }, { onConflict: 'user_id,ano_letivo' });
-  // Actualizar globals
+  if(error) throw error;
+  // Guardar o timestamp da coluna no estado local para comparações futuras
+  _lastSavedAt = now;
   await saveGlobalToDB({ escola:s.escola, professor:s.professor, logo:s.logo, anoLetivo:s.anoLetivo });
 }
 
-// save com debounce 1.5s para não sobrecarregar a DB
+// Timestamp da última vez que guardámos na DB (para comparar com remoto)
+let _lastSavedAt = null;
+
+// save com debounce 2s
 function save(){
-  // Actualizar indicador de estado
   setSyncStatus('saving');
-  // Guardar no localStorage como cache offline
-  try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-  // Debounce para Supabase
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(async()=>{
     try{
       await saveStateToDB(S);
       setSyncStatus('saved');
-    }
-    catch(e){
+    } catch(e){
       setSyncStatus('error');
-      console.warn('Erro ao guardar na DB:', e.message);
+      console.warn('[Save] Erro:', e.message);
     }
-  }, 1500);
+  }, 2000);
 }
 
 // Indicador visual de sincronização no header
@@ -341,26 +343,48 @@ function setSyncStatus(state){
   }
 }
 
+// Sincronizar da DB — compara updated_at da COLUNA com o que guardámos
+async function syncFromDB(){
+  if(!S || !currentUser) return;
+  try{
+    const row = await loadRowFromDB(S.anoLetivo);
+    if(!row) return;
+    // Se a DB tem dados mais recentes do que o nosso último save, recarregar
+    if(!_lastSavedAt || row.updated_at > _lastSavedAt){
+      console.log('[Sync] DB mais recente ('+row.updated_at+' > '+_lastSavedAt+') — a recarregar');
+      _lastSavedAt = row.updated_at;
+      S = row.dados;
+      // Garantir campos obrigatórios
+      if(!S.turmas) S.turmas=[];
+      if(!S.horario) S.horario={};
+      if(!S.sumarios) S.sumarios={};
+      if(!S.faltas) S.faltas={};
+      if(!S.avaliacao) S.avaliacao={};
+      if(!S.planificacao) S.planificacao={};
+      if(!S.reunioes) S.reunioes=[];
+      render();
+      setSyncStatus('✓ Sincronizado');
+      setTimeout(()=>setSyncStatus('saved'), 2000);
+    }
+  } catch(e){ /* sem internet — silencioso */ }
+}
+
 // ── Inicializar app após login ────────────────────────────────
 async function initApp(){
   let g = {};
   try { g = await loadGlobalFromDB(); } catch(e){}
   const anoAtivo = g.ano_letivo || '2025/2026';
 
-  // Carregar sempre da DB (fonte de verdade). localStorage apenas como fallback offline.
+  // Supabase é sempre a fonte de verdade
   let s = null;
-  let fromCache = false;
-  try { s = await loadStateFromDB(anoAtivo); } catch(e){}
-  if(!s){
-    try {
-      const cached = localStorage.getItem('dossier_cache__'+anoAtivo);
-      if(cached){ s = JSON.parse(cached); fromCache = true; }
-    }catch{}
-  }
-  if(fromCache){
-    // Se viemos do cache, tentar guardar na DB imediatamente para sincronizar
-    console.warn('[Sync] Dados carregados do cache local — a tentar sincronizar com a DB...');
-    try { await saveStateToDB(s); fromCache = false; } catch(e){ console.warn('[Sync] Falha ao sincronizar cache:', e.message); }
+  let row = null;
+  try { row = await loadRowFromDB(anoAtivo); } catch(e){}
+  if(row){
+    s = row.dados;
+    _lastSavedAt = row.updated_at;
+  } else {
+    // Sem dados na DB — criar estado novo (não usar localStorage)
+    s = null;
   }
   if(!s) s = createFreshState(anoAtivo, g.escola||'', g.logo||'', g.professor||'');
 
@@ -3457,20 +3481,18 @@ function attachEvents(){
   if(ys) ys.addEventListener('change',async e=>{
     const novoAno=e.target.value;
     if(novoAno===S.anoLetivo) return;
-    // Guardar estado actual na DB antes de mudar
     clearTimeout(_saveTimer);
     setSyncStatus('saving');
     try{ await saveStateToDB(S); setSyncStatus('saved'); }catch(err){ setSyncStatus('error'); }
-    // Carregar novo ano — sempre da DB (fonte de verdade)
     const escola=S.escola; const logo=S.logo; const professor=S.professor||'';
     let novo = null;
-    try{ novo = await loadStateFromDB(novoAno); }catch{}
-    // Só usa localStorage se a DB não tiver nada E não houver ligação
-    if(!novo){
-      try{ const cached=localStorage.getItem('dossier_cache__'+novoAno); if(cached) novo=JSON.parse(cached); }catch{}
-      if(novo) console.warn('[Sync] Ano letivo '+novoAno+' carregado do cache local — sem dados na DB.');
+    let novoRow = null;
+    try{ novoRow = await loadRowFromDB(novoAno); }catch{}
+    if(novoRow){
+      novo = novoRow.dados;
+      _lastSavedAt = novoRow.updated_at;
     }
-    if(!novo) novo=createFreshState(novoAno, escola, logo, professor);
+    if(!novo) novo = createFreshState(novoAno, escola, logo, professor);
     novo.escola=escola; novo.logo=logo; novo.professor=professor;
     S=novo;
     currentTab='painel';
@@ -5214,64 +5236,21 @@ function getCurrentWeekDates(){
   return dates;
 }
 
-// Forçar save antes de fechar o browser (sem esperar debounce)
-window.addEventListener('beforeunload', (e)=>{
+// Tentar guardar antes de fechar o browser
+window.addEventListener('beforeunload', ()=>{
   if(!S || !currentUser) return;
   clearTimeout(_saveTimer);
-  // Guardar no localStorage como garantia offline
+  // Último save síncrono via localStorage como backup offline
   try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-  // Tentar save síncrono via sendBeacon (melhor compatibilidade no fecho)
-  try{
-    const payload = JSON.stringify({
-      user_id: currentUser.id,
-      ano_letivo: S.anoLetivo,
-      dados: S,
-      updated_at: new Date().toISOString()
-    });
-    // Nota: sendBeacon não suporta headers personalizados — o save assíncrono já fez o trabalho principal
-    // Este é apenas um backup de último recurso via localStorage
-  }catch{}
 });
 
-// Re-sincronizar quando a aba/app volta a estar visível (abre no telemóvel, muda de aba, etc.)
-document.addEventListener('visibilitychange', async()=>{
-  if(document.visibilityState === 'visible' && S && currentUser){
-    await syncFromDB();
-  }
+// Sincronizar ao voltar à aba/app
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') syncFromDB();
 });
 
-// Polling a cada 30 segundos para sincronizar entre browsers diferentes
-setInterval(async()=>{
-  if(S && currentUser && document.visibilityState === 'visible'){
-    await syncFromDB();
-  }
-}, 30000);
-
-async function syncFromDB(){
-  try{
-    const remoto = await loadStateFromDB(S.anoLetivo);
-    if(remoto && remoto.updated_at && S.updated_at){
-      if(remoto.updated_at > S.updated_at){
-        console.log('[Sync] Dados mais recentes encontrados na DB — a actualizar...');
-        const escola=S.escola; const logo=S.logo; const professor=S.professor;
-        S = remoto;
-        if(escola) S.escola=escola;
-        if(logo) S.logo=logo;
-        if(professor) S.professor=professor;
-        try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-        render();
-      }
-    } else if(remoto && !S.updated_at){
-      const escola=S.escola; const logo=S.logo; const professor=S.professor;
-      S = remoto;
-      if(escola) S.escola=escola;
-      if(logo) S.logo=logo;
-      if(professor) S.professor=professor;
-      try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-      render();
-    }
-  }catch(e){ /* silencioso — sem internet é normal */ }
-}
+// Polling a cada 15 segundos
+setInterval(()=>{ syncFromDB(); }, 15000);
 
 // Registar Service Worker (PWA)
 if('serviceWorker' in navigator){
