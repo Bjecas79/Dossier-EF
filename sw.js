@@ -1,7 +1,7 @@
-const CACHE_NAME = 'dossier-ef-v2'; // ← incrementa este número a cada deploy
+const CACHE_NAME = 'dossier-ef-v2';
 
 self.addEventListener('install', e => {
-  self.skipWaiting(); // ativa imediatamente sem esperar
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
@@ -13,12 +13,10 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Para pedidos ao Supabase: sempre vai à rede, nunca ao cache
   if(e.request.url.includes('supabase.co')){
     e.respondWith(fetch(e.request));
     return;
   }
-  // Para o resto: network first, cache como fallback
   e.respondWith(
     fetch(e.request)
       .then(res => {
