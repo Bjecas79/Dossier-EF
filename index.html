@@ -436,19 +436,11 @@ async function doSync(btnId){
 
 // ── Inicializar app após login ────────────────────────────────
 async function initApp(){
-  // Mostrar ecrã de carregamento enquanto vai buscar dados ao Supabase
-  const app = document.getElementById('app');
-  if(app) app.innerHTML = `<div style="position:fixed;inset:0;background:linear-gradient(135deg,#0f1f3a,#1a2d4a);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff">
-    <div style="font-size:32px">📋</div>
-    <div style="font-size:18px;font-weight:700;color:#60a5fa">DOSSIER EF</div>
-    <div style="font-size:13px;color:rgba(255,255,255,0.55)">A sincronizar dados…</div>
-  </div>`;
-
   let g = {};
   try { g = await loadGlobalFromDB(); } catch(e){}
   const anoAtivo = g.ano_letivo || '2025/2026';
 
-  // Tentar sempre carregar da DB; fallback para cache local
+  // Tentar carregar da DB; fallback para cache local
   let s = null;
   try { s = await loadStateFromDB(anoAtivo); } catch(e){}
   if(!s){ try { s = JSON.parse(localStorage.getItem('dossier_cache__'+anoAtivo)); }catch{} }
@@ -476,6 +468,34 @@ async function initApp(){
   currentTab = isMobile() ? 'home' : 'painel';
   currentWeekOffset = calcCurrentWeekOffset();
   render();
+
+  // Após render inicial, tentar refresh da DB em background
+  // (garante que mobile/desktop ficam sempre sincronizados)
+  try {
+    const remoto = await loadStateFromDB(S.anoLetivo);
+    if(remoto){
+      const localTs  = S.updated_at || '';
+      const remotoTs = remoto.updated_at || '';
+      if(remotoTs > localTs){
+        S = remoto;
+        if(!S.turmas) S.turmas=[];
+        if(!S.horario) S.horario={};
+        if(!S.sumarios) S.sumarios={};
+        if(!S.faltas) S.faltas={};
+        if(!S.planificacao) S.planificacao={};
+        if(!S.avaliacao) S.avaliacao={};
+        if(!S.modalidadesSemana) S.modalidadesSemana={};
+        if(!S.reunioes) S.reunioes=[];
+        if(!S.pausas) S.pausas=[];
+        if(!S.pausasIntervalos) S.pausasIntervalos=[];
+        if(!S.feriados||!S.feriados.length) S.feriados=calcFeriadosAno(S.anoLetivo);
+        if(!S.calendario) S.calendario=calcCalendarioDefault(S.anoLetivo);
+        try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+        currentWeekOffset = calcCurrentWeekOffset();
+        render();
+      }
+    }
+  } catch(e){}
 }
 
 // ── Render do ecrã de login ───────────────────────────────────
