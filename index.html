@@ -41,14 +41,6 @@
   .prof-name:focus{border-bottom-color:#60a5fa}
   .prof-name::placeholder{color:rgba(255,255,255,0.3)}
   .header-right{margin-left:auto;display:flex;align-items:center;gap:12px}
-  @media(max-width:700px){
-    .header{gap:6px}
-    .header-logo{font-size:14px!important;white-space:nowrap;flex-shrink:0}
-    .school-name{font-size:12px!important;min-width:0!important;flex:1;padding:3px 4px}
-    .prof-name{display:none!important}
-    .year-select{display:none!important}
-    .header-right{display:none!important}
-  }
   .year-select{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:6px 10px;border-radius:6px;font-size:13px;cursor:pointer;outline:none}
   .year-select option{background:#243757;color:#fff}
   .body{display:flex;flex:1;overflow:hidden}
@@ -104,24 +96,7 @@
   .schedule-table{width:100%;border-collapse:collapse;font-size:12px}
   .schedule-table th{background:var(--navy);color:#fff;padding:8px 10px;text-align:center;font-weight:600;font-size:11px}
   .schedule-table td{border:1px solid var(--border);padding:0;vertical-align:top;min-width:100px}
-  .time-short{display:none}
-  .horario-time-short{display:none}
-  .schedule-scroll{overflow-x:auto}
-  @media(max-width:700px){
-    .schedule-scroll{overflow-x:visible}
-    .schedule-table{table-layout:fixed;width:100%}
-    .schedule-table th,.schedule-table td{min-width:0!important}
-    .time-col-th,.time-col{width:38px!important;padding:4px 2px!important;font-size:9px!important}
-    .time-full{display:none}
-    .time-short{display:inline}
-    .aula-cell{padding:4px 3px!important;min-height:44px!important}
-    .aula-turma{font-size:10px!important}
-    .aula-espaco{font-size:9px!important}
-    .aula-modal{font-size:9px!important}
-    .schedule-table th{font-size:9px!important;padding:5px 2px!important}
-    .schedule-table th small{font-size:8px!important}
-  }
-  .time-col{background:var(--gray2);color:var(--gray);font-size:10px;font-weight:600;padding:6px 4px;text-align:center;white-space:nowrap;width:90px}
+  .time-col{background:var(--gray2);color:var(--gray);font-size:10px;font-weight:600;padding:6px 8px;text-align:center;white-space:nowrap;width:90px}
   .aula-cell{padding:6px 8px;min-height:52px;cursor:pointer;transition:background 0.1s;position:relative}
   .aula-cell:hover{background:var(--sky)}
   .aula-cell.empty{background:#fafafa}
@@ -162,17 +137,6 @@
   .horario-table th{background:var(--navy);color:#fff;padding:7px 10px;text-align:center;font-size:11px}
   .horario-table td{border:1px solid var(--border);padding:4px;text-align:center;vertical-align:middle}
   .horario-select{border:none;background:transparent;font-size:11px;color:var(--navy);cursor:pointer;width:100%;text-align:center;padding:2px}
-  .horario-scroll{overflow-x:auto}
-  @media(max-width:700px){
-    .horario-scroll{overflow-x:visible}
-    .horario-table{table-layout:fixed;width:100%}
-    .horario-table th,.horario-table td{min-width:0!important}
-    .horario-table th:first-child,.horario-table td:first-child{width:34px!important;padding:3px 2px!important;font-size:9px!important;white-space:normal!important}
-    .horario-table th{font-size:9px!important;padding:5px 2px!important}
-    .horario-time-full{display:none}
-    .horario-time-short{display:inline}
-    .horario-select{font-size:10px!important;padding:1px!important}
-  }
 
   /* Planificação */
   .plan-table{width:100%;border-collapse:collapse;font-size:12px}
@@ -253,11 +217,6 @@
   .login-switch a:hover{text-decoration:underline}
   .logout-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all 0.15s;white-space:nowrap}
   .logout-btn:hover{background:rgba(255,255,255,0.2);color:#fff}
-  .sync-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.85);padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all 0.2s;white-space:nowrap;font-weight:500}
-  .sync-btn:hover{background:rgba(255,255,255,0.18);color:#fff}
-  .sync-btn.saving{background:rgba(96,165,250,0.2);border-color:#60a5fa;color:#93c5fd;cursor:default}
-  .sync-btn.ok{background:rgba(22,163,74,0.25);border-color:#4ade80;color:#4ade80}
-  .sync-btn.err{background:rgba(220,38,38,0.25);border-color:#f87171;color:#f87171}
   .user-badge{font-size:11px;color:rgba(255,255,255,0.55);white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
 
 </style>
@@ -267,14 +226,14 @@
 
 <script>
 // ══════════════════════════════════════════════════════════════
-// SUPABASE — Autenticação e persistência (versão limpa)
+// SUPABASE — Autenticação e persistência
 // ══════════════════════════════════════════════════════════════
 const SUPA_URL = 'https://thwovkwqxaugnterwzdm.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRod292a3dxeGF1Z250ZXJ3emRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMTk5OTIsImV4cCI6MjA5NDc5NTk5Mn0.qyWqQXhkaZQ3D0eAx7_7XmgICQu-oRsFznP2cCPWGAA';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-let currentUser = null;
-let _saveTimer  = null;
+let currentUser = null; // utilizador autenticado
+let _saveTimer = null;  // debounce do save
 
 // ── Autenticação ──────────────────────────────────────────────
 async function initAuth(){
@@ -287,7 +246,8 @@ async function initAuth(){
       currentUser = session.user;
       await initApp();
     } else if(event==='SIGNED_OUT'){
-      currentUser = null; S = null;
+      currentUser = null;
+      S = null;
       renderLogin();
     }
   });
@@ -304,146 +264,131 @@ async function doSignup(email, password){
 }
 
 async function doLogout(){
-  clearTimeout(_saveTimer);
-  if(S && currentUser){ try{ await _dbSave(S); }catch{} }
   await supa.auth.signOut();
 }
 
-// ── DB: operações simples ─────────────────────────────────────
-// Carregar dados do utilizador atual
-async function _dbLoad(){
-  const { data, error } = await supa
-    .from('dossier_data')
+// ── Persistência Supabase (substitui localStorage) ────────────
+async function loadGlobalFromDB(){
+  const { data } = await supa.from('dossier_global').select('*').eq('user_id', currentUser.id).single();
+  return data || {};
+}
+
+async function saveGlobalToDB(g){
+  await supa.from('dossier_global').upsert({
+    user_id: currentUser.id,
+    escola: g.escola||'',
+    professor: g.professor||'',
+    logo: g.logo||'',
+    ano_letivo: g.anoLetivo||'2025/2026',
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'user_id' });
+}
+
+async function loadStateFromDB(ano){
+  const { data } = await supa.from('dossier_data')
     .select('dados')
     .eq('user_id', currentUser.id)
-    .maybeSingle();
-  if(error) throw new Error('Erro ao carregar: ' + error.message);
+    .eq('ano_letivo', ano)
+    .single();
   return data ? data.dados : null;
 }
 
-// Guardar dados do utilizador atual (upsert pela chave user_id)
-async function _dbSave(s){
-  s.updated_at = new Date().toISOString();
-  const { error } = await supa
-    .from('dossier_data')
-    .upsert({
-      user_id:    currentUser.id,
-      ano_letivo: s.anoLetivo || '2025/2026',
-      dados:      s,
-      updated_at: s.updated_at
-    }, { onConflict: 'user_id' });
-  if(error) throw new Error('Erro ao guardar: ' + error.message);
+async function saveStateToDB(s){
+  s.updated_at = new Date().toISOString(); // timestamp para deteção de versão mais recente
+  await supa.from('dossier_data').upsert({
+    user_id: currentUser.id,
+    ano_letivo: s.anoLetivo,
+    dados: s,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'user_id,ano_letivo' });
+  // Actualizar globals
+  await saveGlobalToDB({ escola:s.escola, professor:s.professor, logo:s.logo, anoLetivo:s.anoLetivo });
 }
 
-// ── Save com debounce ─────────────────────────────────────────
+// save com debounce 1.5s para não sobrecarregar a DB
 function save(){
-  // Cache local imediato
-  try{ localStorage.setItem('dossier_local', JSON.stringify(S)); }catch{}
-  // Enviar à DB após 1.5s de inatividade
+  // Actualizar indicador de estado
+  setSyncStatus('saving');
+  // Guardar no localStorage como cache offline
+  try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+  // Debounce para Supabase
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(async()=>{
-    try{ await _dbSave(S); }
-    catch(e){ console.warn('Save falhou:', e.message); }
+    try{
+      await saveStateToDB(S);
+      setSyncStatus('saved');
+    }
+    catch(e){
+      setSyncStatus('error');
+      console.warn('Erro ao guardar na DB:', e.message);
+    }
   }, 1500);
 }
 
-// ── Sincronização manual (botão) ──────────────────────────────
-async function doSync(btnId){
-  const btn = document.getElementById(btnId);
-  if(!btn) return;
-  clearTimeout(_saveTimer);
-  btn.disabled  = true;
-  btn.textContent = '⏳ A sincronizar…';
-  btn.className = btn.className.replace(/(ok|err|saving)/g,'').trim() + ' saving';
-
-  try{
-    // A DB é sempre a fonte de verdade
-    const remoto = await _dbLoad();
-    if(remoto){
-      S = _ensureStateFields(remoto, null);
-      try{ localStorage.setItem('dossier_local', JSON.stringify(S)); }catch{}
-    } else {
-      // Nada na DB — guardar o que temos
-      await _dbSave(S);
-    }
-    currentWeekOffset = calcCurrentWeekOffset();
-    render();
-    const b2 = document.getElementById(btnId);
-    if(b2){
-      b2.textContent = '✅ Sincronizado';
-      b2.className = b2.className.replace(/(ok|err|saving)/g,'').trim() + ' ok';
-      b2.disabled = false;
-      b2.onclick = ()=>doSync(btnId);
-      setTimeout(()=>{
-        const b3 = document.getElementById(btnId);
-        if(b3){ b3.textContent = btnId==='homeSyncBtn'?'☁️ Sincronizar dados':'☁️ Sincronizar'; b3.className=b3.className.replace(/(ok|err|saving)/g,'').trim(); }
-      }, 2500);
-    }
-  } catch(e){
-    console.error('doSync:', e);
-    const b2 = document.getElementById(btnId);
-    if(b2){
-      b2.textContent = '❌ Erro';
-      b2.className = b2.className.replace(/(ok|err|saving)/g,'').trim() + ' err';
-      b2.disabled = false;
-      b2.onclick = ()=>doSync(btnId);
-      setTimeout(()=>{
-        const b3 = document.getElementById(btnId);
-        if(b3){ b3.textContent = btnId==='homeSyncBtn'?'☁️ Sincronizar dados':'☁️ Sincronizar'; b3.className=b3.className.replace(/(ok|err|saving)/g,'').trim(); }
-      }, 3000);
-    }
+// Indicador visual de sincronização no header
+function setSyncStatus(state){
+  const el = document.getElementById('syncIndicator');
+  if(!el) return;
+  if(state==='saving'){
+    el.textContent='⏳ A guardar...';
+    el.style.color='rgba(255,255,255,0.5)';
+  } else if(state==='saved'){
+    el.textContent='✓ Guardado';
+    el.style.color='#86efac';
+    setTimeout(()=>{ const e=document.getElementById('syncIndicator'); if(e) e.textContent=''; }, 3000);
+  } else if(state==='error'){
+    el.textContent='⚠️ Erro ao guardar';
+    el.style.color='#fca5a5';
   }
 }
 
-// ── Auto-sync ao voltar ao tab ────────────────────────────────
-let _lastAutoSync = 0;
-document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState === 'hidden' && S && currentUser){
-    // Guardar ao sair
-    clearTimeout(_saveTimer);
-    try{ localStorage.setItem('dossier_local', JSON.stringify(S)); }catch{}
-    _dbSave(S).catch(()=>{});
-  }
-  if(document.visibilityState === 'visible' && S && currentUser){
-    // Ao voltar: puxar da DB se passaram mais de 5 segundos
-    const now = Date.now();
-    if(now - _lastAutoSync > 5000){
-      _lastAutoSync = now;
-      _dbLoad().then(remoto=>{
-        if(!remoto) return;
-        S = _ensureStateFields(remoto, null);
-        try{ localStorage.setItem('dossier_local', JSON.stringify(S)); }catch{}
-        currentWeekOffset = calcCurrentWeekOffset();
-        render();
-      }).catch(()=>{});
-    }
-  }
-});
-
-// ── Arrancar app após login ───────────────────────────────────
+// ── Inicializar app após login ────────────────────────────────
 async function initApp(){
+  let g = {};
+  try { g = await loadGlobalFromDB(); } catch(e){}
+  const anoAtivo = g.ano_letivo || '2025/2026';
+
+  // Carregar sempre da DB (fonte de verdade). localStorage apenas como fallback offline.
   let s = null;
-
-  // 1. Tentar carregar da DB (fonte de verdade)
-  try{ s = await _dbLoad(); }
-  catch(e){ console.warn('initApp: DB indisponível:', e.message); }
-
-  // 2. Se DB falhou, usar cache local como fallback
+  let fromCache = false;
+  try { s = await loadStateFromDB(anoAtivo); } catch(e){}
   if(!s){
-    try{ s = JSON.parse(localStorage.getItem('dossier_local')); }catch{}
+    try {
+      const cached = localStorage.getItem('dossier_cache__'+anoAtivo);
+      if(cached){ s = JSON.parse(cached); fromCache = true; }
+    }catch{}
   }
+  if(fromCache){
+    // Se viemos do cache, tentar guardar na DB imediatamente para sincronizar
+    console.warn('[Sync] Dados carregados do cache local — a tentar sincronizar com a DB...');
+    try { await saveStateToDB(s); fromCache = false; } catch(e){ console.warn('[Sync] Falha ao sincronizar cache:', e.message); }
+  }
+  if(!s) s = createFreshState(anoAtivo, g.escola||'', g.logo||'', g.professor||'');
 
-  // 3. Se não há nada, criar estado novo
-  if(!s) s = createFreshState('2025/2026', '', '', '');
+  // Garantir campos
+  if(!s.professor) s.professor = g.professor||'';
+  if(!s.escola)    s.escola    = g.escola||'';
+  if(!s.logo)      s.logo      = g.logo||'';
+  if(!s.turmas) s.turmas=[];
+  if(!s.horario) s.horario={};
+  if(!s.feriados||!s.feriados.length) s.feriados=calcFeriadosAno(s.anoLetivo);
+  if(!s.pausas) s.pausas=[];
+  if(!s.pausasIntervalos) s.pausasIntervalos=[];
+  if(!s.calendario) s.calendario=calcCalendarioDefault(s.anoLetivo);
+  if(!s.sumarios) s.sumarios={};
+  if(!s.faltas) s.faltas={};
+  if(!s.planificacao) s.planificacao={};
+  if(!s.avaliacao) s.avaliacao={};
+  if(!s.modalidadesSemana) s.modalidadesSemana={};
+  if(!s.lastSumarioTurma) s.lastSumarioTurma=null;
+  if(!s.reunioes) s.reunioes=[];
 
-  S = _ensureStateFields(s, null);
-  // Garantir cache local actualizado
-  try{ localStorage.setItem('dossier_local', JSON.stringify(S)); }catch{}
-
+  S = s;
   currentTab = isMobile() ? 'home' : 'painel';
   currentWeekOffset = calcCurrentWeekOffset();
   render();
 }
+
 // ── Render do ecrã de login ───────────────────────────────────
 function renderLogin(mode='login'){
   const app = document.getElementById('app');
@@ -577,7 +522,7 @@ function loadGlobal(){ try{ return JSON.parse(localStorage.getItem(GLOBAL_KEY))|
 function saveGlobal(g){ try{ localStorage.setItem(GLOBAL_KEY, JSON.stringify(g)); }catch{} }
 function stateKey(ano){ return STATE_PREFIX + ano; }
 function loadStateForYear(ano){ try{ return JSON.parse(localStorage.getItem('dossier_cache__'+ano))||null; }catch{ return null; } }
-function saveState(s){ /* alias */ save(); }
+function saveState(s){ /* substituído por saveStateToDB via save() */ }
 
 function createFreshState(anoLetivo, escola, logo, professor){
   return {
@@ -673,8 +618,6 @@ function renderHome(){
     <div class="home-footer">
       <div class="home-escola">${esc(S.escola||'')}</div>
       <div class="home-ano">Ano letivo ${esc(S.anoLetivo||'')}</div>
-      <button class="sync-btn" id="homeSyncBtn" style="width:100%;padding:10px;font-size:13px">☁️ Sincronizar dados</button>
-      <button class="sync-btn" id="homePullBtn" style="width:100%;padding:10px;font-size:13px;background:rgba(124,58,237,0.2);border-color:rgba(124,58,237,0.4);color:#c4b5fd">⬇️ Carregar da nuvem</button>
       <button class="home-logout" id="homeLogoutBtn">🚪 Terminar sessão</button>
     </div>
   </div>`;
@@ -687,15 +630,11 @@ function attachHomeEvents(){
       render();
     });
   });
-  const sb=document.getElementById('homeSyncBtn');
-  if(sb) sb.addEventListener('click',()=>doSync('homeSyncBtn'));
-  const pb=document.getElementById('homePullBtn');
-  if(pb) pb.addEventListener('click',()=>doSync('pullBtn'));
   const lb=document.getElementById('homeLogoutBtn');
   if(lb) lb.addEventListener('click',async()=>{
     if(confirm('Tens a certeza que queres terminar a sessão?')){
       clearTimeout(_saveTimer);
-      try{ await _dbSave(S); }catch{}
+      try{ await saveStateToDB(S); }catch{}
       await doLogout();
     }
   });
@@ -712,14 +651,13 @@ function renderHeader(){
     <input class="prof-name" id="profName" value="${esc(S.professor||'')}" placeholder="Nome do Professor" />
     <select class="year-select" id="yearSelect">${years.map(y=>`<option value="${y}"${y===S.anoLetivo?' selected':''}>${y}</option>`).join('')}</select>
     <div class="header-right">
-      <button class="sync-btn" id="syncBtn">☁️ Sincronizar</button>
-      <button class="sync-btn" id="pullBtn" title="Carregar da nuvem (ignora cache local)" style="background:rgba(124,58,237,0.15);border-color:rgba(124,58,237,0.3);color:#c4b5fd">⬇️ Nuvem</button>
       <div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.1">
         <span style="font-size:10px;color:rgba(255,255,255,0.45);letter-spacing:0.5px;text-transform:uppercase">Desenvolvido por</span>
         <span style="font-family:'Dancing Script','Segoe Script','Comic Sans MS',cursive;font-size:28px;color:#93c5fd;letter-spacing:0.5px;white-space:nowrap;text-shadow:0 1px 6px rgba(147,197,253,0.25)">Hugo Simões</span>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;margin-left:8px;padding-left:12px;border-left:1px solid rgba(255,255,255,0.1)">
         <span class="user-badge" title="${currentUser?currentUser.email:''}">${currentUser?'👤 '+esc(currentUser.email):''}</span>
+        <span id="syncIndicator" style="font-size:10px;min-height:14px;transition:color 0.3s"></span>
         <button class="logout-btn" id="logoutBtn">🚪 Terminar sessão</button>
       </div>
     </div>
@@ -2848,18 +2786,15 @@ function renderSemanal(){
       </div>
     </div>
     ${!semana?`<div class="empty-msg">Configure o Calendário Letivo para ver as semanas</div>`:`
-    <div class="schedule-scroll">
+    <div style="overflow-x:auto">
     <table class="schedule-table">
-      <thead><tr><th class="time-col-th">Hora</th>${DIAS.map((d,i)=>{
+      <thead><tr><th style="width:90px">Hora</th>${DIAS.map((d,i)=>{
         const dayDate = semana[i];
         const wx = isCurrentWeek && weatherCache[dayDate];
         return `<th>${d}<br><small style="font-weight:400;opacity:0.8">${fmtDate(dayDate)}</small>${wx?`<br><span title="${wx.desc} · ${wx.tempMin}°–${wx.tempMax}°C" style="font-size:22px;cursor:default;line-height:1.4">${wx.icon}</span>`:''}`;
       }).join('')}</tr></thead>
       <tbody>${BLOCOS.map((bloco,bi)=>`<tr>
-        <td class="time-col">
-          <span class="time-full">${bloco}</span>
-          <span class="time-short">${bloco.slice(0,5)}</span>
-        </td>
+        <td class="time-col">${bloco}</td>
         ${DIAS.map((d,di)=>{
           const slot=`${di}_${bi}`;
           const aula=S.horario[slot];
@@ -3057,11 +2992,11 @@ function renderCalendario(){
       <div class="card cal-horario-card">
         <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px">🗓️ Horário Semanal Base</div>
         <p style="font-size:11px;color:var(--gray);margin-bottom:12px">Defina a turma e espaço para cada bloco. Este horário gera automaticamente as aulas previstas.</p>
-        <div class="horario-scroll">
+        <div style="overflow-x:auto">
         <table class="horario-table">
           <thead><tr><th>Hora</th>${DIAS.map(d=>`<th>${d}</th>`).join('')}</tr></thead>
           <tbody>${BLOCOS.map((b,bi)=>`<tr>
-            <td style="font-size:10px;white-space:nowrap;background:var(--gray2);font-weight:600;color:var(--gray);padding:4px 6px"><span class="horario-time-full">${b}</span><span class="horario-time-short" style="display:none">${b.slice(0,5)}</span></td>
+            <td style="font-size:10px;white-space:nowrap;background:var(--gray2);font-weight:600;color:var(--gray);padding:4px 6px">${b}</td>
             ${DIAS.map((d,di)=>{
               const slot=`${di}_${bi}`;
               const aula=S.horario[slot]||{};
@@ -3505,15 +3440,11 @@ function attachEvents(){
   if(sn) sn.addEventListener('input',e=>{S.escola=e.target.value;save();});
   const pn=document.getElementById('profName');
   if(pn) pn.addEventListener('input',e=>{S.professor=e.target.value;save();});
-  const syncBtn=document.getElementById('syncBtn');
-  if(syncBtn) syncBtn.addEventListener('click',()=>doSync('syncBtn'));
-  const pullBtn=document.getElementById('pullBtn');
-  if(pullBtn) pullBtn.addEventListener('click',()=>doSync('pullBtn'));
   const logoutBtn=document.getElementById('logoutBtn');
   if(logoutBtn) logoutBtn.addEventListener('click',async()=>{
     if(confirm('Tens a certeza que queres terminar a sessão?')){
       clearTimeout(_saveTimer);
-      try{ await _dbSave(S); }catch{}
+      try{ await saveStateToDB(S); }catch{}
       await doLogout();
     }
   });
@@ -3521,14 +3452,19 @@ function attachEvents(){
   if(ys) ys.addEventListener('change',async e=>{
     const novoAno=e.target.value;
     if(novoAno===S.anoLetivo) return;
-    // Guardar estado actual na DB
+    // Guardar estado actual na DB antes de mudar
     clearTimeout(_saveTimer);
-    try{ await _dbSave(S); }catch{}
-    // Carregar novo ano
+    setSyncStatus('saving');
+    try{ await saveStateToDB(S); setSyncStatus('saved'); }catch(err){ setSyncStatus('error'); }
+    // Carregar novo ano — sempre da DB (fonte de verdade)
     const escola=S.escola; const logo=S.logo; const professor=S.professor||'';
     let novo = null;
-    try{ novo = await _dbLoad(); }catch{}
-    if(!novo) { try{ novo=JSON.parse(localStorage.getItem('dossier_cache__'+novoAno)); }catch{} }
+    try{ novo = await loadStateFromDB(novoAno); }catch{}
+    // Só usa localStorage se a DB não tiver nada E não houver ligação
+    if(!novo){
+      try{ const cached=localStorage.getItem('dossier_cache__'+novoAno); if(cached) novo=JSON.parse(cached); }catch{}
+      if(novo) console.warn('[Sync] Ano letivo '+novoAno+' carregado do cache local — sem dados na DB.');
+    }
     if(!novo) novo=createFreshState(novoAno, escola, logo, professor);
     novo.escola=escola; novo.logo=logo; novo.professor=professor;
     S=novo;
@@ -5273,54 +5209,65 @@ function getCurrentWeekDates(){
   return dates;
 }
 
-// Desregistar qualquer Service Worker antigo (evita cache stale)
+// Forçar save antes de fechar o browser (sem esperar debounce)
+window.addEventListener('beforeunload', (e)=>{
+  if(!S || !currentUser) return;
+  clearTimeout(_saveTimer);
+  // Guardar no localStorage como garantia offline
+  try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+  // Tentar save síncrono via sendBeacon (melhor compatibilidade no fecho)
+  try{
+    const payload = JSON.stringify({
+      user_id: currentUser.id,
+      ano_letivo: S.anoLetivo,
+      dados: S,
+      updated_at: new Date().toISOString()
+    });
+    // Nota: sendBeacon não suporta headers personalizados — o save assíncrono já fez o trabalho principal
+    // Este é apenas um backup de último recurso via localStorage
+  }catch{}
+});
+
+// Re-sincronizar quando a aba/app volta a estar visível (abre no telemóvel, muda de aba, etc.)
+document.addEventListener('visibilitychange', async()=>{
+  if(document.visibilityState === 'visible' && S && currentUser){
+    try{
+      const remoto = await loadStateFromDB(S.anoLetivo);
+      if(remoto && remoto.updated_at && S.updated_at){
+        // Se a versão remota é mais recente, carregar silenciosamente
+        if(remoto.updated_at > S.updated_at){
+          console.log('[Sync] Dados mais recentes encontrados na DB — a actualizar...');
+          const escola=S.escola; const logo=S.logo; const professor=S.professor;
+          S = remoto;
+          if(escola) S.escola=escola;
+          if(logo) S.logo=logo;
+          if(professor) S.professor=professor;
+          try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+          render();
+        }
+      } else if(remoto && !S.updated_at){
+        // Estado local não tem timestamp — preferir remoto
+        const escola=S.escola; const logo=S.logo; const professor=S.professor;
+        S = remoto;
+        if(escola) S.escola=escola;
+        if(logo) S.logo=logo;
+        if(professor) S.professor=professor;
+        try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+        render();
+      }
+    }catch(e){ /* silencioso — sem internet é normal */ }
+  }
+});
+
+// Registar Service Worker (PWA)
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(regs=>{
-    regs.forEach(r=>r.unregister());
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
   });
 }
 
 // Arrancar com autenticação
 initAuth();
-
-// Guardar imediatamente quando o tab é fechado ou minimizado (iOS/Android/desktop)
-// Usa visibilitychange (mais fiável em mobile) + pagehide como fallback
-let _lastVisibleSync = 0;
-document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState === 'hidden' && S && currentUser){
-    // Guardar quando sai do tab
-    clearTimeout(_saveTimer);
-    try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-    _dbSave(S).catch(()=>{});
-  }
-  if(document.visibilityState === 'visible' && S && currentUser){
-    // Quando volta ao tab: sincronizar com a DB se passaram mais de 10 segundos
-    const now = Date.now();
-    if(now - _lastVisibleSync > 10000){
-      _lastVisibleSync = now;
-      _dbLoad().then(remoto => {
-        if(!remoto) return;
-        const remotoTs = remoto.updated_at || '';
-        const localTs  = S.updated_at || '';
-        if(remotoTs > localTs){
-          // DB tem dados mais recentes — atualizar silenciosamente
-          S = _ensureStateFields(remoto, null);
-          try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-          currentWeekOffset = calcCurrentWeekOffset();
-          render();
-          console.log('Auto-sync: dados atualizados da nuvem');
-        }
-      }).catch(()=>{});
-    }
-  }
-});
-window.addEventListener('pagehide', ()=>{
-  if(S && currentUser){
-    clearTimeout(_saveTimer);
-    try{ localStorage.setItem('dossier_local', JSON.stringify(S)); }catch{}
-    _dbSave(S).catch(()=>{});
-  }
-});
 </script>
 </body>
 </html>
