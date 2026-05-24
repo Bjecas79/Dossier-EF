@@ -310,12 +310,13 @@ async function doLogout(){
 
 // ── Persistência Supabase (substitui localStorage) ────────────
 async function loadGlobalFromDB(){
-  const { data } = await supa.from('dossier_global').select('*').eq('user_id', currentUser.id).single();
+  const { data, error } = await supa.from('dossier_global').select('*').eq('user_id', currentUser.id).maybeSingle();
+  if(error){ console.warn('loadGlobalFromDB:', error.message); return {}; }
   return data || {};
 }
 
 async function saveGlobalToDB(g){
-  await supa.from('dossier_global').upsert({
+  const { error } = await supa.from('dossier_global').upsert({
     user_id: currentUser.id,
     escola: g.escola||'',
     professor: g.professor||'',
@@ -323,24 +324,40 @@ async function saveGlobalToDB(g){
     ano_letivo: g.anoLetivo||'2025/2026',
     updated_at: new Date().toISOString()
   }, { onConflict: 'user_id' });
+  if(error) console.warn('saveGlobalToDB:', error.message);
 }
 
 async function loadStateFromDB(ano){
-  const { data } = await supa.from('dossier_data')
-    .select('dados')
+  // Usar maybeSingle() em vez de single() para evitar erro 406 quando não existe registo
+  const { data, error } = await supa.from('dossier_data')
+    .select('dados, updated_at')
     .eq('user_id', currentUser.id)
     .eq('ano_letivo', ano)
-    .single();
-  return data ? data.dados : null;
+    .maybeSingle();
+  if(error){ console.warn('loadStateFromDB:', error.message); return null; }
+  if(!data) return null;
+  // Garantir que o updated_at da linha da DB está dentro do objeto dados
+  // (necessário para a comparação de timestamps na sincronização)
+  const state = data.dados || null;
+  if(state && data.updated_at){
+    const dbTs = data.updated_at;
+    const stateTs = state.updated_at || '';
+    // Usar o timestamp mais recente entre o da coluna e o do objeto
+    if(dbTs > stateTs) state.updated_at = dbTs;
+  }
+  return state;
 }
 
 async function saveStateToDB(s){
-  await supa.from('dossier_data').upsert({
+  const now = new Date().toISOString();
+  if(!s.updated_at) s.updated_at = now;
+  const { error } = await supa.from('dossier_data').upsert({
     user_id: currentUser.id,
     ano_letivo: s.anoLetivo,
     dados: s,
-    updated_at: new Date().toISOString()
+    updated_at: now  // coluna da DB sincronizada com o timestamp do objeto
   }, { onConflict: 'user_id,ano_letivo' });
+  if(error){ console.warn('saveStateToDB:', error.message); throw error; }
   // Actualizar globals
   await saveGlobalToDB({ escola:s.escola, professor:s.professor, logo:s.logo, anoLetivo:s.anoLetivo });
 }
@@ -353,8 +370,15 @@ function save(){
   // Debounce para Supabase
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(async()=>{
-    try{ await saveStateToDB(S); }
-    catch(e){ console.warn('Erro ao guardar na DB:', e.message); }
+    try{
+      await saveStateToDB(S);
+    } catch(e){
+      console.warn('Erro ao guardar na DB:', e.message);
+      // Tentar novamente uma vez após 3 segundos
+      setTimeout(async()=>{
+        try{ await saveStateToDB(S); } catch(e2){ console.warn('Retry falhou:', e2.message); }
+      }, 3000);
+    }
   }, 1500);
 }
 
@@ -478,25 +502,35 @@ function _ensureStateFields(s, g){
 
 async function initApp(){
   let g = {};
-  try { g = await loadGlobalFromDB(); } catch(e){}
+  try { g = await loadGlobalFromDB(); }
+  catch(e){ console.warn('initApp loadGlobal:', e.message); }
   const anoAtivo = g.ano_letivo || '2025/2026';
 
-  // Carregar da DB (fonte de verdade) e cache local em paralelo
+  // Carregar da DB (fonte de verdade) e cache local
   let sDB = null, cacheLocal = null;
-  try { cacheLocal = JSON.parse(localStorage.getItem('dossier_cache__'+anoAtivo)); }catch{}
-  try { sDB = await loadStateFromDB(anoAtivo); } catch(e){}
+  try { cacheLocal = JSON.parse(localStorage.getItem('dossier_cache__'+anoAtivo)); } catch(e){}
+  try { sDB = await loadStateFromDB(anoAtivo); }
+  catch(e){ console.warn('initApp loadState:', e.message); }
 
   let s;
   if(sDB && cacheLocal){
-    // Ambos existem: usar o mais recente pelo timestamp
-    s = (sDB.updated_at||'') >= (cacheLocal.updated_at||'') ? sDB : cacheLocal;
+    // Ambos existem: usar o mais recente pelo timestamp ISO
+    const dbTs    = sDB.updated_at    || '';
+    const localTs = cacheLocal.updated_at || '';
+    s = dbTs >= localTs ? sDB : cacheLocal;
+    console.log('Fonte de dados:', dbTs >= localTs ? 'Supabase' : 'localStorage', {dbTs, localTs});
   } else {
     s = sDB || cacheLocal || createFreshState(anoAtivo, g.escola||'', g.logo||'', g.professor||'');
+    console.log('Fonte de dados:', sDB ? 'Supabase (unico)' : cacheLocal ? 'localStorage (unico)' : 'novo estado');
   }
 
   s = _ensureStateFields(s, g);
   // Sincronizar cache local com os dados vencedores
-  try{ localStorage.setItem('dossier_cache__'+anoAtivo, JSON.stringify(s)); }catch{}
+  try{ localStorage.setItem('dossier_cache__'+anoAtivo, JSON.stringify(s)); } catch(e){}
+  // Se cache local era mais recente que DB, forcar upload
+  if(cacheLocal && sDB && (cacheLocal.updated_at||'') > (sDB.updated_at||'')){
+    try{ await saveStateToDB(s); } catch(e){ console.warn('initApp resync upload:', e.message); }
+  }
 
   S = s;
   currentTab = isMobile() ? 'home' : 'painel';
