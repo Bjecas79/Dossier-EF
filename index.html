@@ -317,6 +317,7 @@ function save(){
   setSyncStatus('saving');
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(async()=>{
+    _saveTimer = null; // limpar antes do await para syncFromDB saber que terminámos
     try{
       await saveStateToDB(S);
       setSyncStatus('saved');
@@ -346,26 +347,27 @@ function setSyncStatus(state){
 // Sincronizar da DB — compara updated_at da COLUNA com o que guardámos
 async function syncFromDB(){
   if(!S || !currentUser) return;
+  // Não sincronizar se há um save pendente — evita loop
+  if(_saveTimer !== null) return;
   try{
     const row = await loadRowFromDB(S.anoLetivo);
     if(!row) return;
-    // Se a DB tem dados mais recentes do que o nosso último save, recarregar
-    if(!_lastSavedAt || row.updated_at > _lastSavedAt){
-      console.log('[Sync] DB mais recente ('+row.updated_at+' > '+_lastSavedAt+') — a recarregar');
-      _lastSavedAt = row.updated_at;
-      S = row.dados;
-      // Garantir campos obrigatórios
-      if(!S.turmas) S.turmas=[];
-      if(!S.horario) S.horario={};
-      if(!S.sumarios) S.sumarios={};
-      if(!S.faltas) S.faltas={};
-      if(!S.avaliacao) S.avaliacao={};
-      if(!S.planificacao) S.planificacao={};
-      if(!S.reunioes) S.reunioes=[];
-      render();
-      setSyncStatus('✓ Sincronizado');
-      setTimeout(()=>setSyncStatus('saved'), 2000);
-    }
+    // Só recarregar se a DB tem dados genuinamente mais recentes
+    if(_lastSavedAt && row.updated_at <= _lastSavedAt) return;
+    if(!_lastSavedAt) return; // ainda não guardámos nada — não sobrescrever
+    console.log('[Sync] DB mais recente ('+row.updated_at+' > '+_lastSavedAt+') — a recarregar');
+    _lastSavedAt = row.updated_at;
+    S = row.dados;
+    // Garantir campos obrigatórios
+    if(!S.turmas) S.turmas=[];
+    if(!S.horario) S.horario={};
+    if(!S.sumarios) S.sumarios={};
+    if(!S.faltas) S.faltas={};
+    if(!S.avaliacao) S.avaliacao={};
+    if(!S.planificacao) S.planificacao={};
+    if(!S.reunioes) S.reunioes=[];
+    render();
+    setSyncStatus('saved');
   } catch(e){ /* sem internet — silencioso */ }
 }
 
