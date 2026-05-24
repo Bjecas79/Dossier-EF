@@ -418,15 +418,34 @@ async function doSync(btnId){
     }
   }
 
-  // Desktop: push
-  btn.textContent = '⏳ A guardar…';
+  // Desktop: pull+push bidirecional (igual ao mobile)
+  btn.textContent = '⏳ A sincronizar…';
   btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' saving';
   try {
-    S.updated_at = new Date().toISOString();
-    await saveStateToDB(S);
-    btn.textContent = '✅ Guardado';
+    const remoto = await loadStateFromDB(S.anoLetivo);
+    if(remoto && (remoto.updated_at||'') > (S.updated_at||'')){
+      // Remoto mais recente: receber dados
+      S = _ensureStateFields(remoto, null);
+      try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+      btn.textContent = '✅ Atualizado!';
+    } else {
+      // Local mais recente (ou igual): guardar na DB
+      S.updated_at = new Date().toISOString();
+      await saveStateToDB(S);
+      try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+      btn.textContent = '✅ Guardado';
+    }
     btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' ok';
-    setTimeout(()=>_syncBtnReset(btn, btnId), 2000);
+    currentWeekOffset = calcCurrentWeekOffset();
+    render();
+    const b2 = document.getElementById(btnId);
+    if(b2){
+      b2.textContent = btn.textContent;
+      b2.className = 'sync-btn ok';
+      b2.disabled = false;
+      b2.addEventListener('click', ()=>doSync(btnId));
+      setTimeout(()=>_syncBtnReset(b2, btnId), 2500);
+    }
   } catch(e) {
     btn.textContent = '❌ Erro';
     btn.className = btn.className.replace(/\b(ok|err|saving)\b/g,'').trim() + ' err';
@@ -435,21 +454,12 @@ async function doSync(btnId){
 }
 
 // ── Inicializar app após login ────────────────────────────────
-async function initApp(){
-  let g = {};
-  try { g = await loadGlobalFromDB(); } catch(e){}
-  const anoAtivo = g.ano_letivo || '2025/2026';
-
-  // Tentar carregar da DB; fallback para cache local
-  let s = null;
-  try { s = await loadStateFromDB(anoAtivo); } catch(e){}
-  if(!s){ try { s = JSON.parse(localStorage.getItem('dossier_cache__'+anoAtivo)); }catch{} }
-  if(!s) s = createFreshState(anoAtivo, g.escola||'', g.logo||'', g.professor||'');
-
-  // Garantir campos
-  if(!s.professor) s.professor = g.professor||'';
-  if(!s.escola)    s.escola    = g.escola||'';
-  if(!s.logo)      s.logo      = g.logo||'';
+function _ensureStateFields(s, g){
+  if(g){
+    if(!s.professor) s.professor = g.professor||'';
+    if(!s.escola)    s.escola    = g.escola||'';
+    if(!s.logo)      s.logo      = g.logo||'';
+  }
   if(!s.turmas) s.turmas=[];
   if(!s.horario) s.horario={};
   if(!s.feriados||!s.feriados.length) s.feriados=calcFeriadosAno(s.anoLetivo);
@@ -463,39 +473,35 @@ async function initApp(){
   if(!s.modalidadesSemana) s.modalidadesSemana={};
   if(!s.lastSumarioTurma) s.lastSumarioTurma=null;
   if(!s.reunioes) s.reunioes=[];
+  return s;
+}
+
+async function initApp(){
+  let g = {};
+  try { g = await loadGlobalFromDB(); } catch(e){}
+  const anoAtivo = g.ano_letivo || '2025/2026';
+
+  // Carregar da DB (fonte de verdade) e cache local em paralelo
+  let sDB = null, cacheLocal = null;
+  try { cacheLocal = JSON.parse(localStorage.getItem('dossier_cache__'+anoAtivo)); }catch{}
+  try { sDB = await loadStateFromDB(anoAtivo); } catch(e){}
+
+  let s;
+  if(sDB && cacheLocal){
+    // Ambos existem: usar o mais recente pelo timestamp
+    s = (sDB.updated_at||'') >= (cacheLocal.updated_at||'') ? sDB : cacheLocal;
+  } else {
+    s = sDB || cacheLocal || createFreshState(anoAtivo, g.escola||'', g.logo||'', g.professor||'');
+  }
+
+  s = _ensureStateFields(s, g);
+  // Sincronizar cache local com os dados vencedores
+  try{ localStorage.setItem('dossier_cache__'+anoAtivo, JSON.stringify(s)); }catch{}
 
   S = s;
   currentTab = isMobile() ? 'home' : 'painel';
   currentWeekOffset = calcCurrentWeekOffset();
   render();
-
-  // Após render inicial, tentar refresh da DB em background
-  // (garante que mobile/desktop ficam sempre sincronizados)
-  try {
-    const remoto = await loadStateFromDB(S.anoLetivo);
-    if(remoto){
-      const localTs  = S.updated_at || '';
-      const remotoTs = remoto.updated_at || '';
-      if(remotoTs > localTs){
-        S = remoto;
-        if(!S.turmas) S.turmas=[];
-        if(!S.horario) S.horario={};
-        if(!S.sumarios) S.sumarios={};
-        if(!S.faltas) S.faltas={};
-        if(!S.planificacao) S.planificacao={};
-        if(!S.avaliacao) S.avaliacao={};
-        if(!S.modalidadesSemana) S.modalidadesSemana={};
-        if(!S.reunioes) S.reunioes=[];
-        if(!S.pausas) S.pausas=[];
-        if(!S.pausasIntervalos) S.pausasIntervalos=[];
-        if(!S.feriados||!S.feriados.length) S.feriados=calcFeriadosAno(S.anoLetivo);
-        if(!S.calendario) S.calendario=calcCalendarioDefault(S.anoLetivo);
-        try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
-        currentWeekOffset = calcCurrentWeekOffset();
-        render();
-      }
-    }
-  } catch(e){}
 }
 
 // ── Render do ecrã de login ───────────────────────────────────
@@ -5330,6 +5336,26 @@ if('serviceWorker' in navigator){
 
 // Arrancar com autenticação
 initAuth();
+
+// Guardar imediatamente quando o tab é fechado ou minimizado (iOS/Android/desktop)
+// Usa visibilitychange (mais fiável em mobile) + pagehide como fallback
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden' && S && currentUser){
+    clearTimeout(_saveTimer);
+    // sendBeacon não suporta JSON body complexo; usamos saveStateToDB com best-effort
+    // Em mobile o navegador pode matar o processo mas o cache local fica salvo
+    try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+    // Tentativa async — pode não completar se o processo for terminado
+    saveStateToDB(S).catch(()=>{});
+  }
+});
+window.addEventListener('pagehide', ()=>{
+  if(S && currentUser){
+    clearTimeout(_saveTimer);
+    try{ localStorage.setItem('dossier_cache__'+S.anoLetivo, JSON.stringify(S)); }catch{}
+    saveStateToDB(S).catch(()=>{});
+  }
+});
 </script>
 </body>
 </html>
