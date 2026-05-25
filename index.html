@@ -170,25 +170,6 @@
     .turma-grid{grid-template-columns:repeat(2,1fr)}
     .sidebar{width:180px}
   }
-  /* === MOBILE: sticky coluna Nome nas tabelas Fitescola/AID === */
-  @media(max-width:600px){
-    #aval-table-wrapper{-webkit-overflow-scrolling:touch;overflow-x:auto !important}
-    /* Sombra direita na coluna Nome como indicador de scroll */
-    #aval-table-wrapper table td:nth-child(2),
-    #aval-table-wrapper table th:nth-child(2){box-shadow:3px 0 6px -2px rgba(0,0,0,0.3)}
-    /* Esconder Gén. e Id. em mobile para ganhar espaço */
-    #aval-table-wrapper table th:nth-child(3),
-    #aval-table-wrapper table td:nth-child(3),
-    #aval-table-wrapper table th:nth-child(4),
-    #aval-table-wrapper table td:nth-child(4){display:none}
-    /* Sticky: #=left:0, Nome=left:36px (sem Gén/Id) */
-    #aval-table-wrapper table th:nth-child(2),
-    #aval-table-wrapper table td:nth-child(2){left:36px !important;min-width:110px !important;max-width:140px !important}
-    /* Separador passa a estar em left:146px (36+110) */
-    #aval-table-wrapper table th:nth-child(5),
-    #aval-table-wrapper table td:nth-child(5){left:146px !important}
-  }
-
   @media(max-width:600px){
     .turma-grid{grid-template-columns:1fr}
     .sidebar{display:none}
@@ -985,12 +966,14 @@ function renderFitescola(turma){
   const leftSep=leftId+stickyIdW;
   const stickyBg='#0f2744'; // mesma cor de fundo dos th fixos
 
+  const mob=isMobile();
+  // Em mobile: só # e Nome são sticky; Gén. e Id. ficam normais para o scroll começar após Nome
   const theadRow1='<tr>'
     +'<th rowspan="2" style="'+thL+';width:'+stickyNumW+'px;position:sticky;top:0;left:0;z-index:10">#</th>'
-    +'<th rowspan="2" style="'+thL+';min-width:'+stickyNomeW+'px;position:sticky;top:0;left:'+leftNome+'px;z-index:10">Nome</th>'
-    +'<th rowspan="2" style="'+thS+';width:'+stickyGenW+'px;position:sticky;top:0;left:'+leftGen+'px;z-index:10">Gén.</th>'
-    +'<th rowspan="2" style="'+thS+';width:'+stickyIdW+'px;position:sticky;top:0;left:'+leftId+'px;z-index:10">Id.</th>'
-    +'<th rowspan="2" style="background:#1e293b;border:none;width:'+stickySepW+'px;position:sticky;top:0;left:'+leftSep+'px;z-index:10"></th>'
+    +'<th rowspan="2" style="'+thL+';min-width:'+stickyNomeW+'px;position:sticky;top:0;left:'+leftNome+'px;z-index:10;'+(mob?'box-shadow:3px 0 5px -1px rgba(0,0,0,0.2)':'')+'"">Nome</th>'
+    +'<th rowspan="2" style="'+thS+';width:'+stickyGenW+'px;'+(mob?'':'position:sticky;top:0;left:'+leftGen+'px;z-index:10')+'">Gén.</th>'
+    +'<th rowspan="2" style="'+thS+';width:'+stickyIdW+'px;'+(mob?'':'position:sticky;top:0;left:'+leftId+'px;z-index:10')+'">Id.</th>'
+    +'<th rowspan="2" style="background:#1e293b;border:none;width:'+stickySepW+'px;'+(mob?'':'position:sticky;top:0;left:'+leftSep+'px;z-index:10')+'"></th>'
     +'<th colspan="3" style="'+thS+';position:sticky;top:0;z-index:4;background:#1e3a8a;font-size:13px;letter-spacing:0.5px">Resumo</th>'
     +'<th rowspan="2" style="background:#1e293b;border:none;width:8px;position:sticky;top:0;z-index:4"></th>'
     +FITESCOLA_TESTES.map(t=>'<th colspan="2" style="'+thS+';position:sticky;top:0;z-index:4">'+t.label+'<br><small style="font-weight:400;opacity:0.75">('+t.unit+')</small></th>').join('')
@@ -1029,10 +1012,10 @@ function renderFitescola(turma){
     const tdBg=i%2===0?'#f8fafc':'#fff';
     return '<tr style="background:'+tdBg+'" data-gen="'+gen+'" data-idade="'+(idadeClamp??'')+'">'
       +'<td style="'+tdB+'color:#64748b;font-size:11px;'+stickyTd+'left:0;background:'+tdBg+'">'+num+'</td>'
-      +'<td style="'+tdB+'text-align:left;padding:4px 8px;color:#0f172a;font-size:13px;'+stickyTd+'left:'+leftNome+'px;background:'+tdBg+'">'+esc(nome)+'</td>'
-      +'<td style="'+tdB+'font-size:13px;'+stickyTd+'left:'+leftGen+'px;background:'+tdBg+'">'+((gen)||'—')+'</td>'
-      +'<td style="'+tdB+'font-size:13px;'+stickyTd+'left:'+leftId+'px;background:'+tdBg+'">'+(idadeClamp??'—')+'</td>'
-      +'<td style="background:#f1f5f9;border:none;width:8px;'+stickyTd+'left:'+leftSep+'px"></td>'
+      +'<td style="'+tdB+'text-align:left;padding:4px 8px;color:#0f172a;font-size:13px;'+stickyTd+'left:'+leftNome+'px;background:'+tdBg+';'+(mob?'box-shadow:3px 0 5px -1px rgba(0,0,0,0.15)':'')+'">'+esc(nome)+'</td>'
+      +'<td style="'+tdB+'font-size:13px;'+(mob?'':'position:sticky;z-index:2;left:'+leftGen+'px;')+'background:'+tdBg+'">'+((gen)||'—')+'</td>'
+      +'<td style="'+tdB+'font-size:13px;'+(mob?'':'position:sticky;z-index:2;left:'+leftId+'px;')+'background:'+tdBg+'">'+(idadeClamp??'—')+'</td>'
+      +'<td style="background:#f1f5f9;border:none;width:8px;'+(mob?'':'position:sticky;z-index:2;left:'+leftSep+'px')+'"></td>'
       +'<td class="fite-resumo" style="'+tdB+'color:#dc2626;font-size:20px;font-weight:800;min-width:56px">'+(nPM||'')+'</td>'
       +'<td class="fite-resumo" style="'+tdB+'color:#16a34a;font-size:20px;font-weight:800;min-width:56px">'+(nOK||'')+'</td>'
       +'<td class="fite-resumo" style="'+tdB+'color:#1d4ed8;font-size:20px;font-weight:800;min-width:56px">'+(nAtl||'')+'</td>'
@@ -1050,7 +1033,7 @@ function renderFitescola(turma){
       </div>
     </div>
     <div style="font-size:11px;color:var(--gray);margin-bottom:16px">Referências: <span style="color:#1d4ed8;font-weight:600">✓ Atlético</span> · <span style="color:var(--green);font-weight:600">OK = Saudável</span> · <span style="color:var(--red);font-weight:600">PM = Abaixo</span> · — = Sem resultado</div>
-    <div id="aval-table-wrapper" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(100vh - 280px);min-height:200px">
+    <div id="aval-table-wrapper" style="overflow:auto;max-height:calc(100vh - 280px);min-height:200px">
     <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:auto">
       <thead>${theadRow1}${theadRow2}</thead>
       <tbody>${rows}</tbody>
@@ -1392,8 +1375,16 @@ function renderSem1AM(){
         <button class="btn btn-primary" id="saveAvalBtn">💾 Guardar</button>
       </div>
     </div>
-    <div id="aval-table-wrapper" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(100vh - 300px);min-height:200px">
+    <div id="aval-table-wrapper" style="overflow:auto;max-height:calc(100vh - 300px);min-height:200px">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>${thead}</thead>
+      <tbody>${bodyRows}</tbody>
+    </table>
+    </div>
+    <div style="margin-top:16px">
+      <label style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px">Observações gerais</label>
+      <textarea id="avalObs" rows="3" style="width:100%;margin-top:6px;border:1px solid var(--border);border-radius:6px;padding:8px;font-size:13px;box-sizing:border-box;resize:vertical" placeholder="Observações gerais...">${esc(dados.obs||'')}</textarea>
+    </div>
   </div>`;
 }
 function renderAvaliacaoSub(turma){
@@ -1906,7 +1897,7 @@ function renderAvaliacaoSub(turma){
         <button class="btn btn-primary" id="saveAvalBtn">💾 Guardar</button>
       </div>
     </div>
-    <div id="aval-table-wrapper" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(100vh - 300px);min-height:200px">
+    <div id="aval-table-wrapper" style="overflow:auto;max-height:calc(100vh - 300px);min-height:200px">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead>${thead}</thead>
       <tbody>${bodyRows}</tbody>
