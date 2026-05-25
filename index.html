@@ -810,10 +810,20 @@ function renderAvaliacao(){
     {id:'sem1am',icon:'📙',label:'AV. ALUNOS A.M.'},
   ];
 
-  const btnHtml=subPastas.map(s=>{
-    const active=filterAvaliacaoSub===s.id;
-    return '<button class="aval-sub-btn" data-sub="'+s.id+'" style="display:flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid '+(active?'var(--blue)':'var(--border)')+';background:'+(active?'var(--blue)':'#fff')+';color:'+(active?'#fff':'var(--navy)')+';transition:all 0.15s"><span style="font-size:18px">'+s.icon+'</span>'+s.label+'</button>';
-  }).join('');
+  const mob=isMobile();
+  const btnHtml=mob
+    ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%">'
+      + subPastas.map((s,idx)=>{
+          const active=filterAvaliacaoSub===s.id;
+          const isLast=idx===subPastas.length-1;
+          return '<button class="aval-sub-btn" data-sub="'+s.id+'" style="'
+            +(isLast?'grid-column:1/-1;':'')+';display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;border:2px solid '+(active?'var(--blue)':'var(--border)')+';background:'+(active?'var(--blue)':'#fff')+';color:'+(active?'#fff':'var(--navy)')+';transition:all 0.15s;text-align:center;line-height:1.2;min-height:52px;box-sizing:border-box"><span style="font-size:15px">'+s.icon+'</span>'+s.label+'</button>';
+        }).join('')
+      +'</div>'
+    : subPastas.map(s=>{
+        const active=filterAvaliacaoSub===s.id;
+        return '<button class="aval-sub-btn" data-sub="'+s.id+'" style="display:flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid '+(active?'var(--blue)':'var(--border)')+';background:'+(active?'var(--blue)':'#fff')+';color:'+(active?'#fff':'var(--navy)')+';transition:all 0.15s"><span style="font-size:18px">'+s.icon+'</span>'+s.label+'</button>';
+      }).join('');
 
   // 1º SEMESTRE A.M. é generalista — não precisa de turma selecionada
   if(filterAvaliacaoSub==='sem1am'){
@@ -1375,7 +1385,7 @@ function renderSem1AM(){
         <button class="btn btn-primary" id="saveAvalBtn">💾 Guardar</button>
       </div>
     </div>
-    <div id="aval-table-wrapper" style="overflow:auto;max-height:calc(100vh - 300px);min-height:200px">
+    <div id="aval-table-wrapper" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(100vh - 300px);min-height:200px">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead>${thead}</thead>
       <tbody>${bodyRows}</tbody>
@@ -1897,7 +1907,7 @@ function renderAvaliacaoSub(turma){
         <button class="btn btn-primary" id="saveAvalBtn">💾 Guardar</button>
       </div>
     </div>
-    <div id="aval-table-wrapper" style="overflow:auto;max-height:calc(100vh - 300px);min-height:200px">
+    <div id="aval-table-wrapper" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(100vh - 300px);min-height:200px">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead>${thead}</thead>
       <tbody>${bodyRows}</tbody>
