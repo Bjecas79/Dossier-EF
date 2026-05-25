@@ -57,6 +57,9 @@
   .logo-edit-btn{width:100%;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);font-size:11px;cursor:pointer;text-align:center;transition:all 0.15s}
   .logo-edit-btn:hover{background:rgba(255,255,255,0.12);color:#fff;border-color:rgba(255,255,255,0.3)}
   .main{flex:1;overflow-y:auto;padding:20px;background:#f0f2f5}
+  @media(max-width:600px){
+    .main{overflow-x:clip}
+  }
 
   /* Cards */
   .card{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
