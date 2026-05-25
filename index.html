@@ -170,6 +170,25 @@
     .turma-grid{grid-template-columns:repeat(2,1fr)}
     .sidebar{width:180px}
   }
+  /* === MOBILE: sticky coluna Nome nas tabelas Fitescola/AID === */
+  @media(max-width:600px){
+    #aval-table-wrapper{-webkit-overflow-scrolling:touch;overflow-x:auto !important}
+    /* Sombra direita na coluna Nome como indicador de scroll */
+    #aval-table-wrapper table td:nth-child(2),
+    #aval-table-wrapper table th:nth-child(2){box-shadow:3px 0 6px -2px rgba(0,0,0,0.3)}
+    /* Esconder Gén. e Id. em mobile para ganhar espaço */
+    #aval-table-wrapper table th:nth-child(3),
+    #aval-table-wrapper table td:nth-child(3),
+    #aval-table-wrapper table th:nth-child(4),
+    #aval-table-wrapper table td:nth-child(4){display:none}
+    /* Sticky: #=left:0, Nome=left:36px (sem Gén/Id) */
+    #aval-table-wrapper table th:nth-child(2),
+    #aval-table-wrapper table td:nth-child(2){left:36px !important;min-width:110px !important;max-width:140px !important}
+    /* Separador passa a estar em left:146px (36+110) */
+    #aval-table-wrapper table th:nth-child(5),
+    #aval-table-wrapper table td:nth-child(5){left:146px !important}
+  }
+
   @media(max-width:600px){
     .turma-grid{grid-template-columns:1fr}
     .sidebar{display:none}
@@ -1031,7 +1050,7 @@ function renderFitescola(turma){
       </div>
     </div>
     <div style="font-size:11px;color:var(--gray);margin-bottom:16px">Referências: <span style="color:#1d4ed8;font-weight:600">✓ Atlético</span> · <span style="color:var(--green);font-weight:600">OK = Saudável</span> · <span style="color:var(--red);font-weight:600">PM = Abaixo</span> · — = Sem resultado</div>
-    <div id="aval-table-wrapper" style="overflow:auto;max-height:calc(100vh - 280px);min-height:200px">
+    <div id="aval-table-wrapper" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(100vh - 280px);min-height:200px">
     <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:auto">
       <thead>${theadRow1}${theadRow2}</thead>
       <tbody>${rows}</tbody>
@@ -1373,16 +1392,8 @@ function renderSem1AM(){
         <button class="btn btn-primary" id="saveAvalBtn">💾 Guardar</button>
       </div>
     </div>
-    <div id="aval-table-wrapper" style="overflow:auto;max-height:calc(100vh - 300px);min-height:200px">
+    <div id="aval-table-wrapper" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(100vh - 300px);min-height:200px">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead>${thead}</thead>
-      <tbody>${bodyRows}</tbody>
-    </table>
-    </div>
-    <div style="margin-top:16px">
-      <label style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px">Observações gerais</label>
-      <textarea id="avalObs" rows="3" style="width:100%;margin-top:6px;border:1px solid var(--border);border-radius:6px;padding:8px;font-size:13px;box-sizing:border-box;resize:vertical" placeholder="Observações gerais...">${esc(dados.obs||'')}</textarea>
-    </div>
   </div>`;
 }
 function renderAvaliacaoSub(turma){
@@ -1895,7 +1906,7 @@ function renderAvaliacaoSub(turma){
         <button class="btn btn-primary" id="saveAvalBtn">💾 Guardar</button>
       </div>
     </div>
-    <div id="aval-table-wrapper" style="overflow:auto;max-height:calc(100vh - 300px);min-height:200px">
+    <div id="aval-table-wrapper" style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(100vh - 300px);min-height:200px">
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead>${thead}</thead>
       <tbody>${bodyRows}</tbody>
