@@ -171,6 +171,15 @@
     .sidebar{width:180px}
   }
   @media(max-width:600px){
+    /* Garantir que todos os th do cabeçalho da tabela AID ficam atrás das colunas sticky # e Nome */
+    #aval-table-wrapper table thead th {
+      z-index: 1 !important;
+    }
+    /* Colunas # e Nome ficam sempre à frente */
+    #aval-table-wrapper table thead th:nth-child(1),
+    #aval-table-wrapper table thead th:nth-child(2) {
+      z-index: 30 !important;
+    }
     .turma-grid{grid-template-columns:1fr}
     .sidebar{display:none}
     /* Cabeçalho — esconder campos que causam scroll horizontal */
