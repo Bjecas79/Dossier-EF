@@ -5276,17 +5276,22 @@ function fixAidStickyMobile(){
   table.querySelectorAll('tr').forEach(tr=>{
     const cells=[...tr.querySelectorAll('th, td')];
     if(cells.length<2) return;
+    const inThead=!!tr.closest('thead');
+    // Fundo opaco: thead usa navy; tbody lê o bg do <tr> (linhas alternadas) ou usa branco
+    const trBg=tr.style.background||tr.style.backgroundColor||'';
+    const bodyBg=trBg||'#fff';
     // Coluna # (índice 0)
     cells[0].style.position='sticky';
     cells[0].style.left='0px';
-    cells[0].style.zIndex= tr.closest('thead') ? '20' : '3';
-    cells[0].style.background= cells[0].style.background || (tr.closest('thead') ? 'var(--navy)' : 'inherit');
+    cells[0].style.zIndex=inThead ? '20' : '4';
+    // Fundo sempre opaco — nunca transparente ou inherit
+    cells[0].style.background=inThead ? 'var(--navy)' : bodyBg;
     // Coluna Nome (índice 1)
     cells[1].style.position='sticky';
     cells[1].style.left='32px';
-    cells[1].style.zIndex= tr.closest('thead') ? '20' : '3';
-    cells[1].style.boxShadow='3px 0 5px -1px rgba(0,0,0,0.15)';
-    cells[1].style.background= cells[1].style.background || (tr.closest('thead') ? 'var(--navy)' : 'inherit');
+    cells[1].style.zIndex=inThead ? '20' : '4';
+    cells[1].style.background=inThead ? 'var(--navy)' : bodyBg;
+    cells[1].style.boxShadow='3px 0 6px -1px rgba(0,0,0,0.18)';
   });
 }
 
