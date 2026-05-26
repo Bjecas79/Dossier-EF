@@ -171,11 +171,6 @@
     .sidebar{width:180px}
   }
   @media(max-width:600px){
-    /* Colunas # e Nome ficam sempre à frente de qualquer outra célula do cabeçalho */
-    #aval-table-wrapper table thead th:nth-child(1),
-    #aval-table-wrapper table thead th:nth-child(2) {
-      z-index: 100 !important;
-    }
     .turma-grid{grid-template-columns:1fr}
     .sidebar{display:none}
     /* Cabeçalho — esconder campos que causam scroll horizontal */
@@ -1444,8 +1439,8 @@ function renderAvaliacaoSub(turma){
 
   const thead=isSem1?`
     <tr style="background:var(--navy)">
-      <th rowspan="${isSem2?4:3}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:600;border:1px solid rgba(255,255,255,0.15);width:32px;position:sticky;left:0;top:0;z-index:${isMobile()?30:6};background:var(--navy)">#</th>
-      <th rowspan="${isSem2?4:3}" style="padding:8px 10px;text-align:left;color:#fff;font-weight:600;border:1px solid rgba(255,255,255,0.15);min-width:90px;position:sticky;left:32px;top:0;z-index:${isMobile()?30:6};background:var(--navy);box-shadow:2px 0 5px rgba(0,0,0,0.12)">Nome</th>
+      <th rowspan="${isSem2?4:3}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:600;border:1px solid rgba(255,255,255,0.15);width:32px;position:sticky;left:0;top:0;z-index:6;background:var(--navy)">#</th>
+      <th rowspan="${isSem2?4:3}" style="padding:8px 10px;text-align:left;color:#fff;font-weight:600;border:1px solid rgba(255,255,255,0.15);min-width:90px;position:sticky;left:32px;top:0;z-index:6;background:var(--navy);box-shadow:2px 0 5px rgba(0,0,0,0.12)">Nome</th>
       <th colspan="${isSem2?36:26}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:800;border:1px solid rgba(255,255,255,0.15);background:#7c2d12;letter-spacing:1px;font-size:13px;position:sticky;top:0;z-index:4">DOMÍNIO DOS CONHECIMENTOS E CAPACIDADES — 85%</th>
       <th colspan="${isSem2?9:4}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:800;border:1px solid rgba(255,255,255,0.15);background:#78350f;letter-spacing:1px;font-size:13px;position:sticky;top:0;z-index:4">DOMÍNIO ATITUDES E VALORES — 15%</th>
       <th colspan="3" style="padding:8px 6px;text-align:center;color:#e11d48;font-weight:800;border:2px solid rgba(225,29,72,0.5);background:#fff1f2;letter-spacing:1px;font-size:13px;position:sticky;top:0;z-index:4">CLASSIFICAÇÃO FINAL DO ${isSem2?'2º':'1º'} SEMESTRE</th>
@@ -5276,22 +5271,17 @@ function fixAidStickyMobile(){
   table.querySelectorAll('tr').forEach(tr=>{
     const cells=[...tr.querySelectorAll('th, td')];
     if(cells.length<2) return;
-    const inThead=!!tr.closest('thead');
-    // Fundo opaco: thead usa navy; tbody lê o bg do <tr> (linhas alternadas) ou usa branco
-    const trBg=tr.style.background||tr.style.backgroundColor||'';
-    const bodyBg=trBg||'#fff';
     // Coluna # (índice 0)
     cells[0].style.position='sticky';
     cells[0].style.left='0px';
-    cells[0].style.zIndex=inThead ? '20' : '4';
-    // Fundo sempre opaco — nunca transparente ou inherit
-    cells[0].style.background=inThead ? 'var(--navy)' : bodyBg;
+    cells[0].style.zIndex= tr.closest('thead') ? '10' : '2';
+    if(!cells[0].style.background) cells[0].style.background='inherit';
     // Coluna Nome (índice 1)
     cells[1].style.position='sticky';
     cells[1].style.left='32px';
-    cells[1].style.zIndex=inThead ? '20' : '4';
-    cells[1].style.background=inThead ? 'var(--navy)' : bodyBg;
-    cells[1].style.boxShadow='3px 0 6px -1px rgba(0,0,0,0.18)';
+    cells[1].style.zIndex= tr.closest('thead') ? '10' : '2';
+    cells[1].style.boxShadow='3px 0 5px -1px rgba(0,0,0,0.15)';
+    if(!cells[1].style.background) cells[1].style.background='inherit';
   });
 }
 
