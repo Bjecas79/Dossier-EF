@@ -1439,8 +1439,8 @@ function renderAvaliacaoSub(turma){
 
   const thead=isSem1?`
     <tr style="background:var(--navy)">
-      <th rowspan="${isSem2?4:3}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:600;border:1px solid rgba(255,255,255,0.15);width:32px;position:sticky;left:0;top:0;z-index:6;background:var(--navy)">#</th>
-      <th rowspan="${isSem2?4:3}" style="padding:8px 10px;text-align:left;color:#fff;font-weight:600;border:1px solid rgba(255,255,255,0.15);min-width:90px;position:sticky;left:32px;top:0;z-index:6;background:var(--navy);box-shadow:2px 0 5px rgba(0,0,0,0.12)">Nome</th>
+      <th rowspan="${isSem2?4:3}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:600;border:1px solid rgba(255,255,255,0.15);width:32px;position:sticky;left:0;top:0;z-index:${isMobile()?30:6};background:var(--navy)">#</th>
+      <th rowspan="${isSem2?4:3}" style="padding:8px 10px;text-align:left;color:#fff;font-weight:600;border:1px solid rgba(255,255,255,0.15);min-width:90px;position:sticky;left:32px;top:0;z-index:${isMobile()?30:6};background:var(--navy);box-shadow:2px 0 5px rgba(0,0,0,0.12)">Nome</th>
       <th colspan="${isSem2?36:26}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:800;border:1px solid rgba(255,255,255,0.15);background:#7c2d12;letter-spacing:1px;font-size:13px;position:sticky;top:0;z-index:4">DOMÍNIO DOS CONHECIMENTOS E CAPACIDADES — 85%</th>
       <th colspan="${isSem2?9:4}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:800;border:1px solid rgba(255,255,255,0.15);background:#78350f;letter-spacing:1px;font-size:13px;position:sticky;top:0;z-index:4">DOMÍNIO ATITUDES E VALORES — 15%</th>
       <th colspan="3" style="padding:8px 6px;text-align:center;color:#e11d48;font-weight:800;border:2px solid rgba(225,29,72,0.5);background:#fff1f2;letter-spacing:1px;font-size:13px;position:sticky;top:0;z-index:4">CLASSIFICAÇÃO FINAL DO ${isSem2?'2º':'1º'} SEMESTRE</th>
