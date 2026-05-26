@@ -5274,14 +5274,14 @@ function fixAidStickyMobile(){
     // Coluna # (índice 0)
     cells[0].style.position='sticky';
     cells[0].style.left='0px';
-    cells[0].style.zIndex= tr.closest('thead') ? '10' : '2';
-    if(!cells[0].style.background) cells[0].style.background='inherit';
+    cells[0].style.zIndex= tr.closest('thead') ? '20' : '3';
+    cells[0].style.background= cells[0].style.background || (tr.closest('thead') ? 'var(--navy)' : 'inherit');
     // Coluna Nome (índice 1)
     cells[1].style.position='sticky';
     cells[1].style.left='32px';
-    cells[1].style.zIndex= tr.closest('thead') ? '10' : '2';
+    cells[1].style.zIndex= tr.closest('thead') ? '20' : '3';
     cells[1].style.boxShadow='3px 0 5px -1px rgba(0,0,0,0.15)';
-    if(!cells[1].style.background) cells[1].style.background='inherit';
+    cells[1].style.background= cells[1].style.background || (tr.closest('thead') ? 'var(--navy)' : 'inherit');
   });
 }
 
