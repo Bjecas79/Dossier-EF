@@ -5754,7 +5754,11 @@ function renderRotacao() {
     <div style="position:sticky;top:0;z-index:50;background:#f0f2f5;padding-bottom:10px;margin-bottom:0;overflow:visible">
       <div class="filter-bar" style="padding-top:4px">
         <div class="section-title" style="margin:0">Mapas de Rotação</div>
-        <button class="btn btn-primary btn-sm" id="rotExportPdfBtn" style="margin-left:auto;display:flex;align-items:center;gap:6px">⬇ Exportar PDF</button>
+        <div style="margin-left:auto;display:${mob?'none':'flex'};align-items:center;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-sm" id="rotExportJsonBtn" style="display:flex;align-items:center;gap:5px;background:#dcfce7;color:#15803d;border-color:#86efac">📤 Exportar JSON</button>
+          <label class="btn btn-sm" style="display:flex;align-items:center;gap:5px;background:#dbeafe;color:#1e40af;border-color:#93c5fd;cursor:pointer;margin:0">📥 Importar JSON<input type="file" id="rotImportJsonInput" accept=".json" style="display:none"></label>
+          <button class="btn btn-primary btn-sm" id="rotExportPdfBtn" style="display:flex;align-items:center;gap:6px">⬇ Exportar PDF</button>
+        </div>
       </div>
       <div style="font-size:12px;color:var(--gray);margin-bottom:8px;padding-left:2px">Preenche o Mapa 1 · Os Mapas 2, 3 e 4 rodam automaticamente (G1 → E1 → G2 → E2 → G1)</div>
       <div style="display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--border);overflow:visible">${btnHtml}${mob ? '' : semanaTag}</div>
@@ -6167,6 +6171,45 @@ function rotExportPDF() {
 }
 
 // ── Eventos do separador Rotação ───────────────────────────────
+function rotExportJson() {
+  const payload = {
+    version: 1,
+    professors: rotProfessors,
+    map1: rotMap1,
+    locked: rotLocked,
+    SLOTS: rotSLOTS
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'mapa_rotacao.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function rotImportJson(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.professors && !data.map1) { alert('Ficheiro inválido: não contém dados de rotação.'); return; }
+      if (!confirm('Importar mapa? Os dados de Professores e Mapa 1 atuais serão substituídos.')) return;
+      if (data.professors) rotProfessors = data.professors;
+      if (data.map1)       rotMap1       = data.map1;
+      if (data.locked)     rotLocked     = data.locked;
+      if (data.SLOTS)      rotSLOTS      = data.SLOTS;
+      rotSaveMap();
+      rotSaveProfs();
+      render();
+    } catch(err) {
+      alert('Erro ao ler o ficheiro: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
 function attachRotacaoEvents() {
   // Tabs
   document.querySelectorAll('[data-rotmap]').forEach(btn => {
@@ -6182,6 +6225,12 @@ function attachRotacaoEvents() {
       render();
     });
   });
+
+  // Exportar / Importar JSON
+  const expJsonBtn = document.getElementById('rotExportJsonBtn');
+  if(expJsonBtn) expJsonBtn.addEventListener('click', rotExportJson);
+  const impJsonInp = document.getElementById('rotImportJsonInput');
+  if(impJsonInp) impJsonInp.addEventListener('change', e => { rotImportJson(e.target.files[0]); e.target.value=''; });
 
   // Exportar PDF
   const pdfBtn = document.getElementById('rotExportPdfBtn');
