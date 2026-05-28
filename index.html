@@ -7251,6 +7251,7 @@ let _trTimer = {
   elapsed: 0,
   totalGame: 600,
   totalBreak: 120,
+  audioCtx: null,  // contexto partilhado — criado no 1.º toque do utilizador
 };
 
 function trTimerGetDurations() {
@@ -7312,7 +7313,10 @@ function trTimerUpdateUI() {
 
 function trTimerBuzzer() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Reutilizar contexto existente (criado no gesto do utilizador) — obrigatório em mobile
+    if (!_trTimer.audioCtx) return;
+    const ctx = _trTimer.audioCtx;
+    if (ctx.state === 'suspended') ctx.resume();
     const dur = 2.0;
 
     // Air horn clássico: mistura de várias frequências harmónicas para som metálico/pneumático
@@ -7374,6 +7378,12 @@ function trTimerPlay() {
   const { game, brk } = trTimerGetDurations();
   _trTimer.totalGame  = game;
   _trTimer.totalBreak = brk;
+  // Criar/retomar AudioContext dentro do gesto do utilizador — único momento permitido em mobile
+  if (!_trTimer.audioCtx) {
+    _trTimer.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } else if (_trTimer.audioCtx.state === 'suspended') {
+    _trTimer.audioCtx.resume();
+  }
   if (_trTimer.state === 'running') {
     clearInterval(_trTimer.interval);
     _trTimer.interval = null;
