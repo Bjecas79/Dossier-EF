@@ -7268,16 +7268,12 @@ function trTimerUpdateUI() {
 
   const dur = _trTimer.phase === 'game' ? _trTimer.totalGame : _trTimer.totalBreak;
   const remaining = Math.max(0, dur - _trTimer.elapsed);
-  const overtime  = _trTimer.elapsed > dur;
-  const showSecs  = overtime ? _trTimer.elapsed - dur : remaining;
-  const m = Math.floor(showSecs / 60);
-  const s = showSecs % 60;
-  const prefix = overtime ? '+' : '';
-  disp.textContent = prefix + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
+  disp.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
 
   disp.className = 'tr-timer-display';
-  disp.style.color = overtime ? '#f87171'
-    : _trTimer.state === 'stopped' ? 'rgba(255,255,255,0.35)'
+  disp.style.color = _trTimer.state === 'stopped' ? 'rgba(255,255,255,0.35)'
     : _trTimer.state === 'paused'  ? '#fbbf24'
     : _trTimer.phase === 'break'   ? '#fbbf24'
     : '#ffffff';
@@ -7285,17 +7281,14 @@ function trTimerUpdateUI() {
   // Barra de progresso
   const prog = document.getElementById('tr-timer-progress');
   if (prog) {
-    const dur2 = _trTimer.phase === 'game' ? _trTimer.totalGame : _trTimer.totalBreak;
-    const pct = Math.min(100, (_trTimer.elapsed / dur2) * 100);
+    const pct = Math.min(100, (_trTimer.elapsed / dur) * 100);
     prog.style.width = pct + '%';
-    prog.style.background = overtime ? '#f87171' : _trTimer.phase === 'break' ? '#fbbf24' : '#22c55e';
+    prog.style.background = _trTimer.phase === 'break' ? '#fbbf24' : '#22c55e';
   }
 
-  if (_trTimer.state === 'stopped') lbl.textContent = 'Parado';
-  else if (_trTimer.state === 'paused') lbl.textContent = overtime ? 'Pausado (tempo extra)' : 'Pausado';
-  else lbl.textContent = overtime
-    ? (_trTimer.phase === 'game' ? '⚠️ Tempo extra!' : '⚠️ Intervalo longo!')
-    : (_trTimer.phase === 'game' ? 'A jogar…' : 'Intervalo…');
+  if (_trTimer.state === 'stopped') lbl.textContent = remaining === 0 ? '🔔 Fim!' : 'Parado';
+  else if (_trTimer.state === 'paused') lbl.textContent = 'Pausado';
+  else lbl.textContent = _trTimer.phase === 'game' ? 'A jogar…' : 'Intervalo…';
 
   if (phase) {
     phase.textContent = _trTimer.phase === 'game' ? '⚽ Jogo' : '☕ Intervalo';
@@ -7314,32 +7307,67 @@ function trTimerUpdateUI() {
     }
   }
 
-  if (overtime && _trTimer.state === 'running') {
-    disp.style.opacity = (Math.floor(_trTimer.elapsed * 2) % 2 === 0) ? '1' : '0.5';
-  } else {
-    disp.style.opacity = '1';
-  }
+  disp.style.opacity = '1';
+}
+
+function trTimerBuzzer() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const dur = 2.0;
+
+    // Air horn clássico: mistura de várias frequências harmónicas para som metálico/pneumático
+    const freqs = [233, 311, 466, 580];
+    freqs.forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const dist = ctx.createWaveShaper();
+
+      // Distorção para som mais áspero/metálico
+      const samples = 512;
+      const curve = new Float32Array(samples);
+      for (let j = 0; j < samples; j++) {
+        const x = (j * 2) / samples - 1;
+        curve[j] = (Math.PI + 300) * x / (Math.PI + 300 * Math.abs(x));
+      }
+      dist.curve = curve;
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      // Ligeira queda de frequência no fim (ar a acabar)
+      osc.frequency.linearRampToValueAtTime(freq * 0.97, ctx.currentTime + dur);
+
+      // Volume de cada harmónico (fundamental mais forte)
+      const vol = [0.45, 0.30, 0.20, 0.12][i];
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.02); // ataque rápido
+      gain.gain.setValueAtTime(vol, ctx.currentTime + dur - 0.15);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + dur);    // decaimento final
+
+      osc.connect(dist);
+      dist.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + dur);
+    });
+  } catch(e) {}
 }
 
 function trTimerTick() {
   _trTimer.elapsed++;
-  trTimerUpdateUI();
   const dur = _trTimer.phase === 'game' ? _trTimer.totalGame : _trTimer.totalBreak;
-  if (_trTimer.elapsed === dur) {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      [0, 150, 300].forEach(delay => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.frequency.value = _trTimer.phase === 'game' ? 880 : 660;
-        gain.gain.setValueAtTime(0.3, ctx.currentTime + delay/1000);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay/1000 + 0.4);
-        osc.start(ctx.currentTime + delay/1000);
-        osc.stop(ctx.currentTime + delay/1000 + 0.4);
-      });
-    } catch(e) {}
+
+  if (_trTimer.elapsed >= dur) {
+    // Chegar a zero: tocar buzina e parar
+    _trTimer.elapsed = dur; // fixar exatamente em 00:00
+    clearInterval(_trTimer.interval);
+    _trTimer.interval = null;
+    _trTimer.state = 'stopped';
+    trTimerBuzzer();
+    trTimerUpdateUI();
+    return;
   }
+
+  trTimerUpdateUI();
 }
 
 function trTimerPlay() {
