@@ -338,6 +338,11 @@
   .logout-btn:hover{background:rgba(255,255,255,0.2);color:#fff}
   .user-badge{font-size:11px;color:rgba(255,255,255,0.55);white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
 
+@keyframes pisca-aviso {
+  0%,100% { opacity:1; transform:scale(1); box-shadow:0 0 0 0 rgba(220,38,38,0.4); }
+  50%      { opacity:0.85; transform:scale(1.04); box-shadow:0 0 0 6px rgba(220,38,38,0); }
+}
+
 </style>
 </head>
 <body>
@@ -533,6 +538,8 @@ async function initApp(){
   if(!s.modalidadesSemana) s.modalidadesSemana={};
   if(!s.lastSumarioTurma) s.lastSumarioTurma=null;
   if(!s.reunioes) s.reunioes=[];
+  if(!s.avisosLidos) s.avisosLidos={};
+  if(!s.avisosEliminados) s.avisosEliminados={};
 
   S = s;
   currentTab = isMobile() ? 'home' : 'painel';
@@ -694,7 +701,9 @@ function createFreshState(anoLetivo, escola, logo, professor){
     avaliacao:{},
     modalidadesSemana:{},
     lastSumarioTurma:null,
-    reunioes:[]
+    reunioes:[],
+    avisosLidos: {},
+    avisosEliminados: {}
   };
 }
 
@@ -762,8 +771,16 @@ function renderHome(){
     {id:'rotacao',   icon:'🔄', label:'Mapas de Rotação',  sub:'Rotação de espaços'},
     {id:'torneios',  icon:'🏆', label:'Torneios Intraturma', sub:'Competições de turma'},
   ];
+  const _hAvisos=calcAvisos();
+  const _hNAvisos=_hAvisos.length;
+  const _hBtnStyle=_hNAvisos>0
+    ? 'background:#dc2626;color:#fff;border:none;animation:pisca-aviso 1s ease-in-out infinite'
+    : 'background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.2)';
   return `<div class="home-screen">
-    <div class="home-header">
+    <div class="home-header" style="position:relative">
+      <button id="homeAvisosBtn" style="${_hBtnStyle};position:absolute;top:20px;right:16px;padding:10px 14px;border-radius:10px;font-size:22px;cursor:pointer;line-height:1;display:flex;align-items:center;gap:6px">
+        🔔${_hNAvisos>0?`<span style="background:#fff;color:#dc2626;border-radius:50%;min-width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;padding:0 3px">${_hNAvisos}</span>`:''}
+      </button>
       ${S.logo
         ? `<img class="home-icon" src="${S.logo}" alt="Logotipo">`
         : `<img class="home-icon" src="icons/icon-192x192.png" alt="Ícone" onerror="this.style.display='none'">`}
@@ -798,6 +815,8 @@ function attachHomeEvents(){
       render();
     });
   });
+  const hab=document.getElementById('homeAvisosBtn');
+  if(hab) hab.addEventListener('click',()=>{currentTab='avisos';render();});
   const lb=document.getElementById('homeLogoutBtn');
   if(lb) lb.addEventListener('click',async()=>{
     if(confirm('Tens a certeza que queres terminar a sessão?')){
@@ -881,6 +900,7 @@ function isMobile(){ return window.innerWidth <= 600; }
 function renderTab(){
   if(currentTab==='home') return renderHome();
   if(currentTab==='painel') return renderPainel();
+  if(currentTab==='avisos') return renderAvisos();
   if(currentTab==='turmas') return renderTurmas();
   if(currentTab==='semanal') return renderSemanal();
   if(currentTab==='sumarios') return renderSumarios();
@@ -2036,6 +2056,131 @@ function getAllModalidadesCountsBySem(){
   return c;
 }
 
+
+// ═══════════════════════════════════════════════════════
+// AVISOS — cálculo centralizado
+// ═══════════════════════════════════════════════════════
+function calcAvisos(incluirLidos=false){
+  const avisos=[];
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const hojeStr=hoje.toISOString().slice(0,10);
+  const limite=5; // fixo: aviso a partir da 6ª falta (>5)
+  const lidos=S.avisosLidos||{};
+
+  function makeId(chave){ return btoa(unescape(encodeURIComponent(chave))); }
+
+  // 1. FALTAS EM EXCESSO
+  S.turmas.forEach(turma=>{
+    const nomes=turma.alunos.map(a=>typeof a==='string'?a:a.nome);
+    const contagem={};
+    nomes.forEach(n=>{ contagem[n]=0; });
+    Object.values(S.faltas||{}).forEach(registo=>{
+      Object.entries(registo).forEach(([nome,tipo])=>{
+        if(tipo==='fp'&&contagem[nome]!==undefined) contagem[nome]++;
+      });
+    });
+    nomes.forEach(nome=>{
+      if(contagem[nome]>limite){
+        const id=makeId('faltas|'+turma.id+'|'+nome);
+        avisos.push({
+          id,
+          tipo:'faltas',
+          nivel:'erro',
+          titulo:'Excesso de Faltas',
+          data: lidos[id+'__data']||hojeStr,
+          msg:`${nome} (${turma.nome}) — ${contagem[nome]} falta${contagem[nome]!==1?'s':''} (limite: >${limite})`
+        });
+      }
+    });
+  });
+
+  // 2. REUNIÕES NAS PRÓXIMAS 48H
+  const em48h=new Date(hoje); em48h.setHours(47,59,59,999);
+  (S.reunioes||[]).forEach(r=>{
+    if(!r.data) return;
+    const dr=new Date(r.data); dr.setHours(0,0,0,0);
+    if(dr>=hoje && dr<=em48h && r.status!=='Realizada' && r.status!=='Cancelada'){
+      const dias=Math.round((dr-hoje)/(1000*60*60*24));
+      const id=makeId('reuniao|'+r.id);
+      avisos.push({
+        id,
+        tipo:'reuniao',
+        nivel:'aviso',
+        titulo:'Reunião Próxima',
+        data: lidos[id+'__data']||hojeStr,
+        msg:`${r.titulo||r.subtipo||'Reunião'} — ${r.data}${r.hora?' às '+r.hora:''}${dias===0?' (hoje)':' (amanhã)'}`
+      });
+    }
+  });
+
+  // 3. ALUNOS POR AVALIAR — um aviso por coluna (turma + semestre + campo)
+  S.turmas.forEach(turma=>{
+    const nomes=turma.alunos.map(a=>typeof a==='string'?a:a.nome);
+    if(!nomes.length) return;
+    ['aid','sem1','sem2'].forEach(sub=>{
+      const key=`${turma.id}__${sub}`;
+      const d=S.avaliacao?.[key];
+      if(!d) return;
+      const subLabel={aid:'AID',sem1:'1º Semestre',sem2:'2º Semestre'}[sub];
+
+      // Nota do professor — só avisa se já existe pelo menos 1 nota numérica válida lançada
+      if(d.notaProfessor){
+        const comNota=nomes.filter(n=>d.notaProfessor[n]!==undefined&&d.notaProfessor[n]!==''&&!isNaN(parseFloat(d.notaProfessor[n])));
+        const semNota=nomes.filter(n=>d.notaProfessor[n]===undefined||d.notaProfessor[n]===''||isNaN(parseFloat(d.notaProfessor[n])));
+        if(comNota.length>=1&&semNota.length>=1){
+          const id=makeId('aval|'+turma.id+'|'+sub+'|notaProf');
+          avisos.push({id,tipo:'avaliacao',nivel:'aviso',titulo:'Avaliação Incompleta',
+            data:lidos[id+'__data']||hojeStr,
+            msg:`${turma.nome} · ${subLabel} · Nota do Professor — ${semNota.length} aluno${semNota.length!==1?'s':''} por avaliar (${semNota.slice(0,3).join(', ')}${semNota.length>3?'…':''})`});
+        }
+      }
+
+      // Atividades — um aviso independente por coluna com título preenchido
+      // Só gera aviso se o preenchimento já foi INICIADO (≥1 aluno com nota numérica válida)
+      if(d.ativNotas&&d.atividadesTitulos){
+        for(let ci=0;ci<12;ci++){
+          const titulo=d.atividadesTitulos[ci];
+          if(!titulo) continue;
+          // "Com nota" = valor numérico (string não vazia e parseFloat válido)
+          const comNota=nomes.filter(n=>{
+            const v=(d.ativNotas[n]||[])[ci];
+            return v!==undefined&&v!==''&&v!==null&&!isNaN(parseFloat(v));
+          });
+          const semNota=nomes.filter(n=>{
+            const v=(d.ativNotas[n]||[])[ci];
+            return v===undefined||v===''||v===null||isNaN(parseFloat(v));
+          });
+          // Só avisa se já existe pelo menos 1 nota lançada E falta pelo menos 1
+          if(comNota.length>=1&&semNota.length>=1){
+            const id=makeId('aval|'+turma.id+'|'+sub+'|ativ|'+ci);
+            avisos.push({id,tipo:'avaliacao',nivel:'aviso',titulo:'Avaliação Incompleta',
+              data:lidos[id+'__data']||hojeStr,
+              msg:`${turma.nome} · ${subLabel} · ${titulo} — ${semNota.length} aluno${semNota.length!==1?'s':''} por avaliar (${semNota.slice(0,3).join(', ')}${semNota.length>3?'…':''})`});
+          }
+        }
+      }
+
+      // Autoavaliação — só avisa se já existe pelo menos 1 valor numérico válido lançado
+      if(d.autoAvaliacao){
+        const comNota=nomes.filter(n=>d.autoAvaliacao[n]!==undefined&&d.autoAvaliacao[n]!==''&&!isNaN(parseFloat(d.autoAvaliacao[n])));
+        const semNota=nomes.filter(n=>d.autoAvaliacao[n]===undefined||d.autoAvaliacao[n]===''||isNaN(parseFloat(d.autoAvaliacao[n])));
+        if(comNota.length>=1&&semNota.length>=1){
+          const id=makeId('aval|'+turma.id+'|'+sub+'|autoAval');
+          avisos.push({id,tipo:'avaliacao',nivel:'aviso',titulo:'Avaliação Incompleta',
+            data:lidos[id+'__data']||hojeStr,
+            msg:`${turma.nome} · ${subLabel} · Autoavaliação — ${semNota.length} aluno${semNota.length!==1?'s':''} por preencher (${semNota.slice(0,3).join(', ')}${semNota.length>3?'…':''})`});
+        }
+      }
+    });
+  });
+
+  // Filtrar eliminados (sempre — avisos eliminados nunca voltam)
+  const eliminados=S.avisosEliminados||{};
+  const semEliminados=avisos.filter(a=>!eliminados[a.id]);
+  // Filtrar lidos (salvo se incluirLidos=true)
+  return incluirLidos ? semEliminados : semEliminados.filter(a=>!lidos[a.id]);
+}
+
 function renderPainel(){
   const modsBySem=getAllModalidadesCountsBySem();
   // Total de aulas dadas = sumários com sumário E modalidadeSumario preenchidos (mesma fonte da planificação)
@@ -2093,10 +2238,18 @@ function renderPainel(){
       Ainda não há modalidades registadas. Insira modalidades no Plano Semanal e adicione sumários.
     </div>`;
 
+  const _avisos=calcAvisos();
+  const _nAvisos=_avisos.length;
+  const _btnStyle=_nAvisos>0
+    ? 'background:#dc2626;color:#fff;border-color:#dc2626;animation:pisca-aviso 1s ease-in-out infinite'
+    : 'background:var(--gray2);color:var(--gray);border-color:var(--border)';
+
   return `<div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div class="section-title" style="margin:0">Painel Principal — ${esc(S.anoLetivo)}</div>
-      <button class="btn btn-primary" id="irTurmasBtn">🏫 Gerir Turmas</button>
+      <button class="btn" id="avisosBtn" style="${_btnStyle};position:relative;font-weight:700;font-size:15px;padding:10px 20px;border-radius:10px;letter-spacing:0.2px">
+        🔔 Avisos${_nAvisos>0?` <span style="background:#fff;color:#dc2626;border-radius:50%;min-width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;margin-left:6px;padding:0 4px">${_nAvisos}</span>`:''}
+      </button>
     </div>
     <div class="grid-4" style="margin-bottom:20px">
       ${[
@@ -2111,6 +2264,88 @@ function renderPainel(){
       </div>`).join('')}
     </div>
     ${modSection}
+  </div>`;
+}
+
+function renderAvisos(){
+  const avisos=calcAvisos(); // ativos (não lidos)
+  const todosAvisos=calcAvisos(true); // todos incluindo lidos
+  const lidos=S.avisosLidos||{};
+  const avisosLidosLista=todosAvisos.filter(a=>lidos[a.id]);
+
+  const porTipo={faltas:[],reuniao:[],avaliacao:[]};
+  avisos.forEach(a=>{ if(porTipo[a.tipo]) porTipo[a.tipo].push(a); });
+
+  function secao(titulo,icone,cor,corBg,lista,mostrarBtnLido=true){
+    if(!lista.length) return '';
+    return `<div class="card" style="margin-bottom:16px;border-left:4px solid ${cor}">
+      <div style="font-size:14px;font-weight:700;color:${cor};margin-bottom:10px">${icone} ${titulo} <span style="background:${corBg};color:${cor};border-radius:12px;padding:1px 8px;font-size:12px;margin-left:4px">${lista.length}</span></div>
+      ${lista.map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span>${mostrarBtnLido?(a.nivel==='erro'?'🔴':'🟡'):'✅'}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:${mostrarBtnLido?'var(--navy)':'var(--gray)'};${mostrarBtnLido?'':'text-decoration:line-through'}">${esc(a.msg)}</div>
+          <div style="font-size:11px;color:var(--gray);margin-top:2px">${a.data||''}</div>
+        </div>
+        <div style="display:flex;flex-direction:${isMobile()?'column':'row'};gap:5px;flex-shrink:0;align-items:flex-end">
+        ${mostrarBtnLido?`<button class="aviso-lido-btn btn" data-aviso-id="${a.id}"
+          style="font-size:11px;padding:3px 10px;background:#f1f5f9;border-color:#cbd5e1;color:#475569;white-space:nowrap">
+          ✓ Marcar como lido
+        </button>`:`<button class="aviso-reabrir-btn btn" data-aviso-id="${a.id}"
+          style="font-size:11px;padding:3px 10px;background:#f1f5f9;border-color:#cbd5e1;color:#94a3b8;white-space:nowrap">
+          ↩ Reabrir
+        </button>`}
+        <button class="aviso-eliminar-btn btn" data-aviso-id="${a.id}"
+          style="font-size:11px;padding:3px 10px;background:#fee2e2;border-color:#fca5a5;color:#dc2626;white-space:nowrap">
+          🗑 Eliminar
+        </button>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  const vazio=`<div class="card" style="text-align:center;padding:40px;color:var(--gray)">
+    <div style="font-size:40px;margin-bottom:12px">✅</div>
+    <div style="font-size:15px;font-weight:600">Sem avisos activos</div>
+    <div style="font-size:13px;margin-top:4px">Tudo em ordem!</div>
+  </div>`;
+
+  const secaoLidos=avisosLidosLista.length?`
+    <div style="margin-top:28px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:12px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.6px;white-space:nowrap">📂 Avisos Lidos / Resolvidos (${avisosLidosLista.length})</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+    <div class="card" style="margin-bottom:16px;border-left:4px solid #cbd5e1;background:#f8fafc;opacity:0.85">
+      ${avisosLidosLista.map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span>✅</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:var(--gray);text-decoration:line-through">${esc(a.msg)}</div>
+          <div style="font-size:11px;color:var(--gray);margin-top:2px">${a.data||''}</div>
+        </div>
+        <div style="display:flex;flex-direction:${isMobile()?'column':'row'};gap:5px;flex-shrink:0;align-items:flex-end">
+        <button class="aviso-reabrir-btn btn" data-aviso-id="${a.id}"
+          style="font-size:11px;padding:3px 10px;background:#f1f5f9;border-color:#cbd5e1;color:#94a3b8;white-space:nowrap">
+          ↩ Reabrir
+        </button>
+        <button class="aviso-eliminar-btn btn" data-aviso-id="${a.id}"
+          style="font-size:11px;padding:3px 10px;background:#fee2e2;border-color:#fca5a5;color:#dc2626;white-space:nowrap">
+          🗑 Eliminar
+        </button>
+        </div>
+      </div>`).join('')}
+    </div>
+  `:'';
+
+  return `<div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <button class="btn" id="avisosVoltarBtn" style="font-size:13px">← Voltar</button>
+      <div class="section-title" style="margin:0">🔔 Avisos</div>
+    </div>
+    ${!avisos.length ? vazio : ''}
+    ${secao('Faltas em Excesso','🚨','#dc2626','#fee2e2',porTipo.faltas)}
+    ${secao('Reuniões Próximas','📅','#d97706','#fef3c7',porTipo.reuniao)}
+    ${secao('Avaliações Incompletas','⚠️','#7c3aed','#ede9fe',porTipo.avaliacao)}
+    ${secaoLidos}
   </div>`;
 }
 
@@ -3715,8 +3950,40 @@ function attachEvents(){
   });
 
   // Painel
-  const irTurmasBtn=document.getElementById('irTurmasBtn');
-  if(irTurmasBtn) irTurmasBtn.addEventListener('click',()=>{currentTab='turmas';render();});
+  const avisosBtn=document.getElementById('avisosBtn');
+  if(avisosBtn) avisosBtn.addEventListener('click',()=>{currentTab='avisos';render();});
+  const avisosVoltarBtn=document.getElementById('avisosVoltarBtn');
+  if(avisosVoltarBtn) avisosVoltarBtn.addEventListener('click',()=>{currentTab='painel';render();});
+  document.querySelectorAll('.aviso-lido-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id=btn.dataset.avisoId;
+      if(!id) return;
+      if(!S.avisosLidos) S.avisosLidos={};
+      S.avisosLidos[id]=true;
+      // Guardar a data em que foi marcado como lido
+      S.avisosLidos[id+'__data']=new Date().toISOString().slice(0,10);
+      save(); render();
+    });
+  });
+  document.querySelectorAll('.aviso-reabrir-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id=btn.dataset.avisoId;
+      if(!id) return;
+      if(S.avisosLidos){ delete S.avisosLidos[id]; delete S.avisosLidos[id+'__data']; }
+      save(); render();
+    });
+  });
+  document.querySelectorAll('.aviso-eliminar-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id=btn.dataset.avisoId;
+      if(!id) return;
+      if(!confirm('Eliminar este aviso permanentemente? N\u00e3o voltar\u00e1 a aparecer mesmo que a situa\u00e7\u00e3o se mantenha.')) return;
+      if(!S.avisosEliminados) S.avisosEliminados={};
+      S.avisosEliminados[id]=true;
+      if(S.avisosLidos){ delete S.avisosLidos[id]; delete S.avisosLidos[id+'__data']; }
+      save(); render();
+    });
+  });
 
   // Turmas
   const addTurmaBtn=document.getElementById('addTurmaBtn');
@@ -4283,6 +4550,42 @@ function attachEvents(){
     });
   });
   document.getElementById('avalObs')?.addEventListener('input',()=>{ collectAndSaveAval(); });
+
+  // === Navegar para a célula de baixo ao pressionar Enter em qualquer input das tabelas de avaliação ===
+  function avalEnterNavigation(){
+    const AVAL_INPUTS = [
+      '.aid-nota-professor','.fit-pontos-override','.fit-pontos2s-override',
+      '.ativ-nota','.nota-professor','.auto-avaliacao',
+      '.am-campo','.am-auto-aval','.am-questao','.am-classif-final',
+    ].join(',');
+    document.querySelectorAll(AVAL_INPUTS).forEach(el=>{
+      el.addEventListener('keydown', e=>{
+        if(e.key !== 'Enter') return;
+        e.preventDefault();
+        // Encontrar todos os inputs visíveis da mesma coluna na tabela
+        const td = el.closest('td');
+        const tr = el.closest('tr');
+        const table = el.closest('table');
+        if(!td || !tr || !table) return;
+        const colIdx = [...tr.children].indexOf(td);
+        // Percorrer as linhas seguintes à procura de um input na mesma coluna
+        let nextRow = tr.nextElementSibling;
+        while(nextRow){
+          const targetTd = nextRow.children[colIdx];
+          if(targetTd){
+            const inp = targetTd.querySelector(AVAL_INPUTS);
+            if(inp && !inp.disabled && !inp.readOnly){
+              inp.focus();
+              inp.select();
+              return;
+            }
+          }
+          nextRow = nextRow.nextElementSibling;
+        }
+      });
+    });
+  }
+  avalEnterNavigation();
 
   // === SEM1AM — Recálculo em tempo real ===
   function amRecalcRow(row){
