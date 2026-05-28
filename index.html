@@ -778,7 +778,7 @@ function renderHome(){
     : 'background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.2)';
   return `<div class="home-screen">
     <div class="home-header" style="position:relative">
-      <button id="homeAvisosBtn" style="${_hBtnStyle};position:absolute;top:20px;right:16px;padding:10px 14px;border-radius:10px;font-size:22px;cursor:pointer;line-height:1;display:flex;align-items:center;gap:6px">
+      <button id="homeAvisosBtn" style="${_hBtnStyle};position:absolute;top:20px;right:16px;padding:10px 14px;border-radius:10px;font-size:22px;cursor:pointer;line-height:1;display:${_hNAvisos>0?'flex':'none'};align-items:center;gap:6px">
         🔔${_hNAvisos>0?`<span style="background:#fff;color:#dc2626;border-radius:50%;min-width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;padding:0 3px">${_hNAvisos}</span>`:''}
       </button>
       ${S.logo
@@ -2247,7 +2247,7 @@ function renderPainel(){
   return `<div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div class="section-title" style="margin:0">Painel Principal — ${esc(S.anoLetivo)}</div>
-      <button class="btn" id="avisosBtn" style="${_btnStyle};position:relative;font-weight:700;font-size:15px;padding:10px 20px;border-radius:10px;letter-spacing:0.2px">
+      <button class="btn" id="avisosBtn" style="${_btnStyle};position:relative;font-weight:700;font-size:15px;padding:10px 20px;border-radius:10px;letter-spacing:0.2px;display:${isMobile()?'none':'inline-flex'};align-items:center">
         🔔 Avisos${_nAvisos>0?` <span style="background:#fff;color:#dc2626;border-radius:50%;min-width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;margin-left:6px;padding:0 4px">${_nAvisos}</span>`:''}
       </button>
     </div>
