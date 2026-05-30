@@ -931,6 +931,7 @@ function renderAvaliacao(){
     {id:'sem1',icon:'📘',label:'1º SEMESTRE'},
     {id:'sem2',icon:'📗',label:'2º SEMESTRE'},
     {id:'sem1am',icon:'📙',label:'AV. ALUNOS A.M.'},
+    {id:'fichaaa',icon:'📝',label:'FICHA AA'},
   ];
 
   const mob=isMobile();
@@ -956,6 +957,20 @@ function renderAvaliacao(){
       +'<div style="display:flex;gap:8px;margin-bottom:0;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--border);overflow:visible">'+btnHtml+'</div>'
       +'</div>'
       +renderSem1AM()
+      +'</div>';
+  }
+
+  // FICHA AA — vista dedicada com turma selecionada
+  if(filterAvaliacaoSub==='fichaaa'){
+    const turmaAA=S.turmas.find(t=>t.id==filterAvaliacaoTurma);
+    const turmasOptsAA='<option value="">Selecionar turma...</option>'+S.turmas.map(t=>'<option value="'+t.id+'"'+(filterAvaliacaoTurma==t.id?' selected':'')+'>'+esc(t.nome)+'</option>').join('');
+    return '<div>'
+      +'<div style="position:sticky;top:0;z-index:50;background:#f0f2f5;padding-bottom:10px;margin-bottom:0;overflow:visible">'
+      +'<div class="filter-bar" style="padding-top:4px"><div class="section-title" style="margin:0">Avaliação</div>'
+      +'<select class="filter-select" id="filterAvalTurmaS" style="min-width:180px">'+turmasOptsAA+'</select></div>'
+      +'<div style="display:flex;gap:8px;margin-bottom:0;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--border);overflow:visible">'+btnHtml+'</div>'
+      +'</div>'
+      +(turmaAA ? renderFichaAA(turmaAA) : '<div class="empty-msg">Seleciona uma turma.</div>')
       +'</div>';
   }
 
@@ -1227,6 +1242,181 @@ function calcClassFinal(totalPontos, ano, semestre){
     for(const [min,label] of rows){ if(t>=min) return label; }
     return '≤5';
   }
+}
+
+// === FICHA AA ===
+function renderFichaAA(turma){
+  if(!S.fichaAA) S.fichaAA={};
+  const fichaUrl='https://bjecas79.github.io/Ficha-AA/ficha_autoavaliacao_ef_10ano_24.html';
+  const userId=(currentUser&&currentUser.id)||'';
+  const anoLetivo=S.anoLetivo||'';
+
+  // Gerar/obter código curto para partilha
+  async function obterCodigoCurto(sem){
+    // Ver se já existe
+    const {data:existing} = await supa.from('fichas_links').select('code').eq('user_id',userId).eq('turma_id',String(turma.id)).eq('semestre',sem).eq('ano_letivo',anoLetivo).single();
+    if(existing) return existing.code;
+    // Criar novo código de 6 caracteres
+    const code = Math.random().toString(36).slice(2,8);
+    await supa.from('fichas_links').insert({code, user_id:userId, turma_id:String(turma.id), semestre:sem, ano_letivo:anoLetivo});
+    return code;
+  }
+
+  function linkFromCode(code){
+    return `https://bjecas79.github.io/Ficha-AA/ficha_aluno.html?c=${code}`;
+  }
+
+  // Estado sincronização
+  const fichasKey=`fichaaa_${turma.id}`;
+  const fichasDados=S.fichaAA[fichasKey]||{fichas1s:{},fichas2s:{}};
+
+  const alunos=(turma.alunos||[]).map(a=>typeof a==='string'?{nome:a,dataNasc:''}:a);
+
+  // Botão abrir ficha original
+  const btnFichaOriginal=`<a href="${fichaUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:9px 18px;background:#fff;border:2px solid var(--blue);color:var(--blue);border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;transition:all 0.15s" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#fff'">📄 Ver Ficha AA Original</a>`;
+
+  // Tabela de alunos
+  const theadHtml=`<thead><tr style="background:var(--bg);position:sticky;top:0;z-index:2">
+    <th style="padding:8px 10px;text-align:left;font-size:12px;font-weight:700;color:var(--navy);border:1px solid var(--border);min-width:180px">Aluno</th>
+    <th colspan="2" style="padding:8px 10px;text-align:center;font-size:12px;font-weight:700;color:var(--navy);border:1px solid var(--border);background:#eff6ff">Ficha AA 1º Semestre</th>
+    <th colspan="2" style="padding:8px 10px;text-align:center;font-size:12px;font-weight:700;color:var(--navy);border:1px solid var(--border);background:#f0fdf4">Ficha AA 2º Semestre</th>
+  </tr>
+  <tr style="background:var(--bg);position:sticky;top:34px;z-index:2">
+    <th style="border:1px solid var(--border)"></th>
+    <th style="padding:6px 8px;text-align:center;font-size:11px;color:#64748b;border:1px solid var(--border);background:#eff6ff">Pré-Preenchida</th>
+    <th style="padding:6px 8px;text-align:center;font-size:11px;color:#64748b;border:1px solid var(--border);background:#eff6ff">Final</th>
+    <th style="padding:6px 8px;text-align:center;font-size:11px;color:#64748b;border:1px solid var(--border);background:#f0fdf4">Pré-Preenchida</th>
+    <th style="padding:6px 8px;text-align:center;font-size:11px;color:#64748b;border:1px solid var(--border);background:#f0fdf4">Final</th>
+  </tr></thead>`;
+
+  const tbodyHtml=alunos.map(a=>{
+    const nome=a.nome||a;
+    const f1=fichasDados.fichas1s?.[nome];
+    const f2=fichasDados.fichas2s?.[nome];
+    const nota1=f1?.nota_aa!==undefined&&f1?.nota_aa!==null?`<span style="font-weight:800;color:#16a34a">${f1.nota_aa}</span> val.`:'—';
+    const nota2=f2?.nota_aa!==undefined&&f2?.nota_aa!==null?`<span style="font-weight:800;color:#16a34a">${f2.nota_aa}</span> val.`:'—';
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:7px 10px;font-size:13px;font-weight:600;color:var(--navy);border:1px solid var(--border)">${esc(nome)}</td>
+      <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f8faff">
+        <span style="font-size:11px;color:#94a3b8">via link da turma</span>
+      </td>
+      <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f8faff">
+        ${f1?`<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${escJ(JSON.stringify(f1))}','${escJ(nome)}',1)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota1}</small>`:'<span style="color:#ccc;font-size:11px">Pendente</span>'}
+      </td>
+      <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f0fdf8">
+        <span style="font-size:11px;color:#94a3b8">via link da turma</span>
+      </td>
+      <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f0fdf8">
+        ${f2?`<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${escJ(JSON.stringify(f2))}','${escJ(nome)}',2)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota2}</small>`:'<span style="color:#ccc;font-size:11px">Pendente</span>'}
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<div style="padding:12px 0">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div style="font-size:15px;font-weight:800;color:var(--navy)">📝 Fichas de Autoavaliação — ${esc(turma.nome)}</div>
+      ${btnFichaOriginal}
+    </div>
+    <!-- Painel de links e sincronizar -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:8px">🔗 1º SEMESTRE</div>
+        <div id="link-display-1" style="font-size:12px;color:#64748b;background:#fff;border-radius:6px;padding:7px;margin-bottom:8px;border:1px solid #dbeafe;word-break:break-all">⏳ A gerar link...</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="btn-copiar-1" onclick="copiarLinkCurto(1)" style="flex:1;padding:7px 10px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">🔗 Copiar Link</button>
+          <button onclick="sincronizarFichas(${turma.id},1)" style="flex:1;padding:7px 10px;background:#0e7490;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">🔄 Sincronizar</button>
+        </div>
+      </div>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:700;color:#16a34a;margin-bottom:8px">🔗 2º SEMESTRE</div>
+        <div id="link-display-2" style="font-size:12px;color:#64748b;background:#fff;border-radius:6px;padding:7px;margin-bottom:8px;border:1px solid #bbf7d0;word-break:break-all">⏳ A gerar link...</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="btn-copiar-2" onclick="copiarLinkCurto(2)" style="flex:1;padding:7px 10px;background:#16a34a;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">🔗 Copiar Link</button>
+          <button onclick="sincronizarFichas(${turma.id},2)" style="flex:1;padding:7px 10px;background:#0e7490;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">🔄 Sincronizar</button>
+        </div>
+      </div>
+    </div>
+    <div id="fichaaa-sync-msg" style="display:none;margin-bottom:10px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600"></div>
+    <!-- Tabela alunos -->
+    <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border)">
+      <table style="width:100%;border-collapse:collapse;min-width:600px">
+        ${theadHtml}
+        <tbody>${tbodyHtml}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+// Variável global para guardar os links curtos da vista atual
+let _fichaAALinks = {1: null, 2: null};
+
+async function carregarLinksCurtos(turmaId, userId, anoLetivo){
+  _fichaAALinks = {1: null, 2: null};
+  for(const sem of [1,2]){
+    try{
+      const {data:existing} = await supa.from('fichas_links').select('code').eq('user_id',userId).eq('turma_id',String(turmaId)).eq('semestre',sem).eq('ano_letivo',anoLetivo).single();
+      let code;
+      if(existing){ code=existing.code; }
+      else {
+        code = Math.random().toString(36).slice(2,8);
+        await supa.from('fichas_links').insert({code, user_id:userId, turma_id:String(turmaId), semestre:sem, ano_letivo:anoLetivo});
+      }
+      const link=`https://bjecas79.github.io/Ficha-AA/ficha_aluno.html?c=${code}`;
+      _fichaAALinks[sem]=link;
+      const el=document.getElementById(`link-display-${sem}`);
+      if(el) el.textContent=link;
+    }catch(e){
+      const el=document.getElementById(`link-display-${sem}`);
+      if(el) el.textContent='Erro ao gerar link';
+    }
+  }
+}
+
+function copiarLinkCurto(sem){
+  const link=_fichaAALinks[sem];
+  if(!link) return;
+  const btn=document.getElementById(`btn-copiar-${sem}`);
+  navigator.clipboard.writeText(link).then(()=>{
+    if(btn){btn.textContent='✅ Copiado!'; setTimeout(()=>btn.textContent='🔗 Copiar Link',2000);}
+  });
+}
+
+async function sincronizarFichas(turmaId, sem){
+  const msgEl=document.getElementById('fichaaa-sync-msg');
+  if(msgEl){msgEl.style.display='block';msgEl.style.background='#eff6ff';msgEl.style.color='#1d4ed8';msgEl.style.border='1px solid #bfdbfe';msgEl.textContent='⏳ A sincronizar...';}
+  try{
+    const userId=currentUser&&currentUser.id;
+    if(!userId) throw new Error('Utilizador não autenticado');
+    const anoLetivo=S.anoLetivo||'';
+    const {data,error}=await supa.from('fichas_aa').select('nome_aluno,nota_aa,dados,updated_at').eq('user_id',userId).eq('turma_id',turmaId).eq('semestre',sem).eq('ano_letivo',anoLetivo);
+    if(error) throw error;
+    if(!S.fichaAA) S.fichaAA={};
+    const key=`fichaaa_${turmaId}`;
+    if(!S.fichaAA[key]) S.fichaAA[key]={fichas1s:{},fichas2s:{}};
+    const semKey=sem===1?'fichas1s':'fichas2s';
+    (data||[]).forEach(f=>{ S.fichaAA[key][semKey][f.nome_aluno]=f; });
+    // Copiar nota AA para coluna AutoAvaliação na tabela de avaliação
+    const avalKey=`${turmaId}__sem${sem}`;
+    if(!S.avaliacao) S.avaliacao={};
+    if(!S.avaliacao[avalKey]) S.avaliacao[avalKey]={notas:{},obsAlunos:{},pontos:{},obs:''};
+    (data||[]).forEach(f=>{
+      if(f.nota_aa!==null&&f.nota_aa!==undefined){
+        if(!S.avaliacao[avalKey].autoAval) S.avaliacao[avalKey].autoAval={};
+        S.avaliacao[avalKey].autoAval[f.nome_aluno]=f.nota_aa;
+      }
+    });
+    save();render();
+    if(msgEl){msgEl.style.background='#dcfce7';msgEl.style.color='#16a34a';msgEl.style.border='1px solid #86efac';msgEl.textContent=`✅ ${(data||[]).length} ficha(s) sincronizada(s) para o ${sem}º Semestre!`;}
+  }catch(e){
+    if(msgEl){msgEl.style.background='#fee2e2';msgEl.style.color='#dc2626';msgEl.style.border='1px solid #fca5a5';msgEl.textContent='❌ Erro ao sincronizar: '+e.message;}
+  }
+}
+
+function verFichaAluno(dadosJson, nome, sem){
+  // Abre a ficha do aluno em nova janela (visualização apenas)
+  const d=JSON.parse(dadosJson);
+  const url=`ficha_aluno.html?u=${encodeURIComponent((currentUser&&currentUser.id)||'')}&t=${encodeURIComponent(filterAvaliacaoTurma)}&s=${sem}&al=${encodeURIComponent(S.anoLetivo||'')}#view-${encodeURIComponent(nome)}`;
+  window.open(url,'_blank');
 }
 
 // === AVALIAÇÃO ATESTADO MÉDICO — 1º SEMESTRE (generalista, sem ligação a turmas) ===
@@ -3924,7 +4114,22 @@ function attachEvents(){
   const logoFile=document.getElementById('logoFile');
   if(logoFile) logoFile.addEventListener('change',e=>{
     const f=e.target.files[0];if(!f)return;
-    const r=new FileReader();r.onload=ev=>{S.logo=ev.target.result;save();render();};r.readAsDataURL(f);
+    const r=new FileReader();
+    r.onload=ev=>{
+      const img=new Image();
+      img.onload=()=>{
+        const MAX=300;
+        let w=img.width, h=img.height;
+        if(w>MAX||h>MAX){ const ratio=Math.min(MAX/w,MAX/h); w=Math.round(w*ratio); h=Math.round(h*ratio); }
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        S.logo=canvas.toDataURL('image/jpeg',0.75);
+        save();render();
+      };
+      img.src=ev.target.result;
+    };
+    r.readAsDataURL(f);
   });
 
   document.querySelectorAll('.nav-item').forEach(el=>{
@@ -4074,9 +4279,28 @@ function attachEvents(){
 
   // Avaliação
   const filterAvalTurmaS=document.getElementById('filterAvalTurmaS');
-  if(filterAvalTurmaS) filterAvalTurmaS.addEventListener('change',e=>{filterAvaliacaoTurma=e.target.value;render();});
+  if(filterAvalTurmaS) filterAvalTurmaS.addEventListener('change',e=>{
+    filterAvaliacaoTurma=e.target.value;
+    render();
+    if(filterAvaliacaoSub==='fichaaa'){
+      const turma=S.turmas.find(t=>t.id==filterAvaliacaoTurma);
+      if(turma && currentUser) carregarLinksCurtos(turma.id, currentUser.id, S.anoLetivo||'');
+    }
+  });
+  // Se a vista fichaaa já está ativa ao renderizar, carregar links
+  if(filterAvaliacaoSub==='fichaaa'){
+    const turma=S.turmas.find(t=>t.id==filterAvaliacaoTurma);
+    if(turma && currentUser) setTimeout(()=>carregarLinksCurtos(turma.id, currentUser.id, S.anoLetivo||''),100);
+  }
   document.querySelectorAll('.aval-sub-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{filterAvaliacaoSub=btn.dataset.sub;render();});
+    btn.addEventListener('click',()=>{
+      filterAvaliacaoSub=btn.dataset.sub;
+      render();
+      if(btn.dataset.sub==='fichaaa'){
+        const turma=S.turmas.find(t=>t.id==filterAvaliacaoTurma);
+        if(turma && currentUser) carregarLinksCurtos(turma.id, currentUser.id, S.anoLetivo||'');
+      }
+    });
   });
   const saveAvalBtn=document.getElementById('saveAvalBtn');
   if(saveAvalBtn) saveAvalBtn.addEventListener('click',()=>{
