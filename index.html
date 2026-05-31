@@ -2669,16 +2669,7 @@ function notaBg(n){
 function renderResumoAnual(){
   if(!S.turmas||!S.turmas.length) return '';
 
-  // Só turmas com pelo menos 1 nota
-  const turmasComDados = S.turmas.filter(t=>{
-    const k1=`${t.id}__sem1`, k2=`${t.id}__sem2`;
-    const n1=S.avaliacao?.[k1]?.notas||{};
-    const n2=S.avaliacao?.[k2]?.notas||{};
-    return Object.keys(n1).length>0||Object.keys(n2).length>0;
-  });
-  if(!turmasComDados.length) return '';
-
-  const cols = turmasComDados.map(t=>{
+  const cols = S.turmas.map(t=>{
     const k1=`${t.id}__sem1`, k2=`${t.id}__sem2`;
     const notas1=S.avaliacao?.[k1]?.notas||{};
     const notas2=S.avaliacao?.[k2]?.notas||{};
@@ -2693,37 +2684,44 @@ function renderResumoAnual(){
     return {t, alunos, notas1, notas2, med1, med2};
   });
 
+  const nTurmas = cols.length;
+
   const tableHtml = cols.map(({t,alunos,notas1,notas2,med1,med2})=>{
     const rows = alunos.map((nome,i)=>{
       const n1=notas1[nome]; const n2=notas2[nome];
       const v1=n1!==undefined&&n1!==''&&n1!==null?n1:'—';
       const v2=n2!==undefined&&n2!==''&&n2!==null?n2:'—';
       return `<tr style="background:${i%2===0?'var(--gray2)':'#fff'}">
-        <td style="padding:4px 8px;font-size:12px;color:var(--navy);border-bottom:1px solid var(--border);white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">${esc(nome)}</td>
-        <td style="padding:4px 6px;text-align:center;font-size:12px;font-weight:700;color:${notaColor(v1)};background:${notaBg(v1)};border-bottom:1px solid var(--border)">${v1}</td>
-        <td style="padding:4px 6px;text-align:center;font-size:12px;font-weight:700;color:${notaColor(v2)};background:${notaBg(v2)};border-bottom:1px solid var(--border)">${v2}</td>
+        <td style="padding:3px 5px;font-size:11px;color:var(--navy);border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:0">${esc(nome)}</td>
+        <td style="padding:3px 4px;text-align:center;font-size:11px;font-weight:700;color:${notaColor(v1)};background:${notaBg(v1)};border-bottom:1px solid var(--border);white-space:nowrap">${v1}</td>
+        <td style="padding:3px 4px;text-align:center;font-size:11px;font-weight:700;color:${notaColor(v2)};background:${notaBg(v2)};border-bottom:1px solid var(--border);white-space:nowrap">${v2}</td>
       </tr>`;
     }).join('');
 
-    return `<div style="min-width:220px;flex:1">
-      <div style="background:var(--blue);color:#fff;padding:8px 10px;border-radius:8px 8px 0 0;text-align:center">
-        <div style="font-size:13px;font-weight:800">${esc(t.nome)}</div>
-        <div style="font-size:11px;opacity:0.85;margin-top:2px">${alunos.length} alunos</div>
+    return `<div style="min-width:0;overflow:hidden">
+      <div style="background:var(--blue);color:#fff;padding:5px 6px;border-radius:6px 6px 0 0;text-align:center">
+        <div style="font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.nome)}</div>
+        <div style="font-size:10px;opacity:0.8">${alunos.length} al.</div>
       </div>
-      <table style="width:100%;border-collapse:collapse">
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <colgroup>
+          <col style="width:auto">
+          <col style="width:28px">
+          <col style="width:28px">
+        </colgroup>
         <thead>
           <tr style="background:#1e3a5f">
-            <th style="padding:5px 8px;text-align:left;font-size:11px;color:#cbd5e1;font-weight:600">Aluno</th>
-            <th style="padding:5px 6px;text-align:center;font-size:11px;color:#cbd5e1;font-weight:600;white-space:nowrap">1ºS</th>
-            <th style="padding:5px 6px;text-align:center;font-size:11px;color:#cbd5e1;font-weight:600;white-space:nowrap">2ºS</th>
+            <th style="padding:3px 5px;text-align:left;font-size:10px;color:#cbd5e1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Aluno</th>
+            <th style="padding:3px 2px;text-align:center;font-size:10px;color:#cbd5e1;font-weight:600">1S</th>
+            <th style="padding:3px 2px;text-align:center;font-size:10px;color:#cbd5e1;font-weight:600">2S</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
         <tfoot>
           <tr style="background:#e0f2fe">
-            <td style="padding:5px 8px;font-size:11px;font-weight:700;color:#0369a1">Média turma</td>
-            <td style="padding:5px 6px;text-align:center;font-size:12px;font-weight:800;color:${notaColor(med1)}">${med1!==null?med1:'—'}</td>
-            <td style="padding:5px 6px;text-align:center;font-size:12px;font-weight:800;color:${notaColor(med2)}">${med2!==null?med2:'—'}</td>
+            <td style="padding:3px 5px;font-size:10px;font-weight:700;color:#0369a1;white-space:nowrap">Média</td>
+            <td style="padding:3px 2px;text-align:center;font-size:11px;font-weight:800;color:${notaColor(med1)}">${med1!==null?med1:'—'}</td>
+            <td style="padding:3px 2px;text-align:center;font-size:11px;font-weight:800;color:${notaColor(med2)}">${med2!==null?med2:'—'}</td>
           </tr>
         </tfoot>
       </table>
@@ -2731,14 +2729,12 @@ function renderResumoAnual(){
   }).join('');
 
   return `<div class="card" style="margin-bottom:20px">
-    <div style="font-size:14px;font-weight:800;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:8px">
+    <div style="font-size:14px;font-weight:800;color:var(--navy);margin-bottom:12px;display:flex;align-items:center;gap:8px">
       📋 Avaliação — Resumo Anual Comparativo
       <span style="font-size:11px;font-weight:500;color:var(--gray);background:var(--gray2);padding:2px 8px;border-radius:12px">Notas finais por turma</span>
     </div>
-    <div style="overflow-x:auto">
-      <div style="display:flex;gap:12px;min-width:max-content;padding-bottom:4px">
-        ${tableHtml}
-      </div>
+    <div style="display:grid;grid-template-columns:repeat(${nTurmas},1fr);gap:8px">
+      ${tableHtml}
     </div>
     <div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap">
       ${[{c:'#f0fdf4',tc:'#16a34a',l:'≥ 18'},
@@ -2746,7 +2742,7 @@ function renderResumoAnual(){
          {c:'#fffbeb',tc:'#d97706',l:'10–13'},
          {c:'#fef2f2',tc:'#dc2626',l:'< 10'}
         ].map(x=>`<div style="display:flex;align-items:center;gap:5px">
-          <div style="width:16px;height:16px;border-radius:3px;background:${x.c};border:1px solid ${x.tc}22"></div>
+          <div style="width:14px;height:14px;border-radius:3px;background:${x.c};border:1px solid ${x.tc}44"></div>
           <span style="font-size:11px;color:var(--gray)">${x.l}</span>
         </div>`).join('')}
     </div>
