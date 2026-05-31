@@ -1379,6 +1379,27 @@ async function carregarLinksCurtos(turmaId, userId, anoLetivo){
       if(el) el.textContent='Erro ao gerar link';
     }
   }
+  // Auto-carregar fichas já submetidas (sem precisar clicar Sincronizar)
+  try{
+    const {data:fichas}=await supa.from('fichas_aa').select('nome_aluno,semestre,nota_aa,dados,updated_at').eq('user_id',userId).eq('turma_id',turmaId).eq('ano_letivo',anoLetivo);
+    if(fichas&&fichas.length){
+      if(!S.fichaAA) S.fichaAA={};
+      const key=`fichaaa_${turmaId}`;
+      if(!S.fichaAA[key]) S.fichaAA[key]={fichas1s:{},fichas2s:{}};
+      fichas.forEach(f=>{
+        const semKey=(f.semestre===1||f.semestre==='1')?'fichas1s':'fichas2s';
+        S.fichaAA[key][semKey][f.nome_aluno]=f;
+        const avalKey=`${turmaId}__sem${f.semestre}`;
+        if(!S.avaliacao) S.avaliacao={};
+        if(!S.avaliacao[avalKey]) S.avaliacao[avalKey]={notas:{},obsAlunos:{},pontos:{},obs:''};
+        if(f.nota_aa!==null&&f.nota_aa!==undefined){
+          if(!S.avaliacao[avalKey].autoAval) S.avaliacao[avalKey].autoAval={};
+          S.avaliacao[avalKey].autoAval[f.nome_aluno]=f.nota_aa;
+        }
+      });
+      render();
+    }
+  }catch(e){ console.warn('Erro ao auto-carregar fichas AA:',e); }
   atualizarBotoesAbrir();
 }
 
@@ -1439,10 +1460,218 @@ async function sincronizarFichas(turmaId, sem){
 }
 
 function verFichaAluno(dadosJson, nome, sem){
-  // Abre a ficha do aluno em nova janela (visualização apenas)
-  const d=JSON.parse(dadosJson);
-  const url=`ficha_aluno.html?u=${encodeURIComponent((currentUser&&currentUser.id)||'')}&t=${encodeURIComponent(filterAvaliacaoTurma)}&s=${sem}&al=${encodeURIComponent(S.anoLetivo||'')}#view-${encodeURIComponent(nome)}`;
-  window.open(url,'_blank');
+  const row = typeof dadosJson === 'string' ? JSON.parse(dadosJson) : dadosJson;
+  // row pode ser o objecto completo da linha supabase {nome_aluno, nota_aa, dados, updated_at}
+  // ou diretamente os dados da ficha
+  const d = row.dados ? (typeof row.dados === 'string' ? JSON.parse(row.dados) : row.dados) : row;
+  gerarPdfFichaAA(d, nome, sem);
+}
+
+// ── GERAR PDF DA FICHA AA A PARTIR DOS DADOS GUARDADOS ────────
+function gerarPdfFichaAA(d, nome, sem){
+  if(typeof window.jspdf === 'undefined'){ alert('jsPDF não está carregado.'); return; }
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+
+  const turma = S.turmas.find(t=>t.id==filterAvaliacaoTurma);
+  const ano = turma?.ano || '10º';
+  const turmaName = turma?.nome || '';
+  const escola = S.escola || 'Escola Secundária Du Bocage';
+  const anolet = S.anoLetivo || '';
+  const dataEnvio = d.dataEnvio || new Date().toISOString().split('T')[0];
+
+  // Cabeçalho
+  const logoData='data:image/png;base64,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';
+  try{ doc.addImage(logoData,'JPEG',14,8,18,18); doc.addImage(logoData,'JPEG',178,8,18,18); }catch(e){}
+  doc.setFillColor(29,78,216); doc.rect(0,0,210,30,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text('Ficha de Autoavaliacao',105,11,{align:'center'});
+  doc.setFontSize(12); doc.text('Educacao Fisica — '+escola,105,19,{align:'center'});
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.text(anolet,105,26,{align:'center'});
+
+  let y=36;
+  doc.setFillColor(239,246,255); doc.setDrawColor(191,219,254);
+  doc.roundedRect(12,y,186,12,2,2,'FD');
+  doc.setTextColor(30,30,30); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+  doc.text('Nome: ',14,y+5); doc.setFont('helvetica','normal'); doc.text(nome,28,y+5);
+  doc.setFont('helvetica','bold'); doc.text('Ano: ',90,y+5); doc.setFont('helvetica','normal'); doc.text(ano,99,y+5);
+  doc.setFont('helvetica','bold'); doc.text('Turma: ',108,y+5); doc.setFont('helvetica','normal'); doc.text(turmaName,120,y+5);
+  doc.setFont('helvetica','bold'); doc.text('Data: ',145,y+5); doc.setFont('helvetica','normal'); doc.text(dataEnvio,154,y+5);
+  y+=16;
+
+  // Helpers PDF
+  function sectionHeader(title,badge){
+    doc.setFillColor(219,234,254); doc.roundedRect(12,y,186,7,1,1,'F');
+    doc.setTextColor(29,78,216); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    if(badge){ doc.setFillColor(29,78,216); doc.circle(17,y+3.5,3,'F'); doc.setTextColor(255,255,255); doc.setFontSize(7); doc.text(badge,17,y+4,{align:'center'}); doc.setTextColor(29,78,216); doc.setFontSize(8.5); doc.text(title,22,y+4.5); }
+    else doc.text('  '+title,14,y+4.5);
+    y+=9;
+  }
+  function colHeaders(c1='1º Semestre',c2='2º Semestre'){
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(120,120,120);
+    doc.text(c1,165,y+3,{align:'center'}); doc.text(c2,195,y+3,{align:'center'}); y+=6;
+  }
+  function dataRow(label,v1,v2,shade){
+    if(shade){doc.setFillColor(248,250,252);doc.rect(12,y,186,5.5,'F');}
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(30,30,30);
+    doc.text(label,14,y+4);
+    doc.setDrawColor(220,220,220);
+    doc.rect(145,y,40,5.5,'S'); doc.text(String(v1),165,y+4,{align:'center'});
+    doc.rect(175,y,40,5.5,'S'); doc.text(String(v2),195,y+4,{align:'center'});
+    y+=5.5;
+  }
+  function totalRow(label,v1,v2){
+    doc.setFillColor(239,246,255); doc.rect(12,y,186,6,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(29,78,216);
+    doc.text(label,14,y+4.5);
+    doc.setDrawColor(191,219,254);
+    doc.rect(145,y,40,6,'S'); doc.text(String(v1),165,y+4.5,{align:'center'});
+    doc.rect(175,y,40,6,'S'); doc.text(String(v2),195,y+4.5,{align:'center'});
+    y+=6;
+  }
+  function totalBlue(label,v){
+    doc.setFillColor(219,234,254); doc.roundedRect(12,y,186,6,1,1,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(29,78,216);
+    doc.text(label,14,y+4.5); doc.text(String(v),185,y+4.5,{align:'right'}); y+=8;
+  }
+  function checkNewPage(needed){if(y+needed>278){doc.addPage();y=14;}}
+
+  // Tabelas de conversão e regras (igual à ficha AA)
+  const convTables={'10º':{s1:[{min:14.5,n:20},{min:13,n:19},{min:12.5,n:18},{min:12,n:17},{min:10,n:16},{min:9.5,n:15},{min:9,n:14},{min:7,n:13},{min:6.5,n:12},{min:5.5,n:11},{min:4.5,n:10},{min:3,n:9},{min:2.5,n:8},{min:2,n:7},{min:1.5,n:6},{min:1,n:5}],s2:[{min:20,n:20},{min:19,n:19},{min:17.5,n:18},{min:15.5,n:17},{min:15,n:16},{min:14.5,n:15},{min:13.5,n:14},{min:11.5,n:13},{min:10.5,n:12},{min:10,n:11},{min:9.5,n:10},{min:7.5,n:9},{min:6.5,n:8},{min:5.5,n:7},{min:4.5,n:6},{min:3.5,n:5}]},'11º':{s1:[{min:14.5,n:20},{min:13.5,n:19},{min:13,n:18},{min:12.5,n:17},{min:11.5,n:16},{min:10,n:15},{min:9.5,n:14},{min:7.5,n:13},{min:7,n:12},{min:6,n:11},{min:5,n:10},{min:3.5,n:9},{min:3,n:8},{min:2.5,n:7},{min:2,n:6},{min:1.5,n:5}],s2:[{min:20.5,n:20},{min:19.5,n:19},{min:18,n:18},{min:16,n:17},{min:15.5,n:16},{min:15,n:15},{min:14,n:14},{min:12,n:13},{min:11.5,n:12},{min:11,n:11},{min:10.5,n:10},{min:8.5,n:9},{min:7.5,n:8},{min:6.5,n:7},{min:5.5,n:6},{min:4.5,n:5}]},'12º':{s1:[{min:15,n:20},{min:14.5,n:19},{min:13.5,n:18},{min:13,n:17},{min:12,n:16},{min:11,n:15},{min:10,n:14},{min:8,n:13},{min:7.5,n:12},{min:6.5,n:11},{min:5.5,n:10},{min:4,n:9},{min:3.5,n:8},{min:3,n:7},{min:2.5,n:6},{min:2,n:5}],s2:[{min:21,n:20},{min:20,n:19},{min:18.5,n:18},{min:17.5,n:17},{min:17,n:16},{min:16,n:15},{min:15,n:14},{min:13,n:13},{min:12.5,n:12},{min:12,n:11},{min:11.5,n:10},{min:9.5,n:9},{min:8.5,n:8},{min:7.5,n:7},{min:6.5,n:6},{min:5.5,n:5}]},'7º':{pct:true,s1:[{min:11,n:100},{min:10.5,n:94},{min:8,n:89},{min:7,n:80},{min:4,n:69},{min:3.5,n:60},{min:2.5,n:49},{min:2,n:39},{min:1.5,n:29},{min:1,n:19}],s2:[{min:14.5,n:100},{min:14,n:94},{min:11.5,n:89},{min:11,n:80},{min:7.5,n:69},{min:7,n:60},{min:5.5,n:49},{min:5,n:39},{min:4.5,n:29},{min:4,n:19}]},'8º':{pct:true,s1:[{min:12,n:100},{min:11.5,n:94},{min:9,n:89},{min:8,n:80},{min:5.5,n:69},{min:4,n:60},{min:3,n:49},{min:2.5,n:39},{min:2,n:29},{min:1.5,n:19}],s2:[{min:16,n:100},{min:15,n:94},{min:12.5,n:89},{min:12,n:80},{min:9,n:69},{min:8.5,n:60},{min:7,n:49},{min:6.5,n:39},{min:6,n:29},{min:5.5,n:19}]},'9º':{pct:true,s1:[{min:13.5,n:100},{min:13,n:94},{min:10.5,n:89},{min:9,n:80},{min:6,n:69},{min:4.5,n:60},{min:3.5,n:49},{min:3,n:39},{min:2.5,n:29},{min:2,n:19}],s2:[{min:17,n:100},{min:16.5,n:94},{min:14.5,n:89},{min:14,n:80},{min:9.5,n:69},{min:9,n:60},{min:8,n:49},{min:7.5,n:39},{min:7,n:29},{min:6.5,n:19}]}};
+  const anoRules={'7º':{s1n:2,s1max:4.5,s2jdc:1,s2gin:1,s2are:0,s2out:3,s2max:8},'8º':{s1n:3,s1max:5.5,s2jdc:1,s2gin:1,s2are:0,s2out:4,s2max:9.5},'9º':{s1n:3,s1max:7,s2jdc:2,s2gin:1,s2are:1,s2out:2,s2max:10.5},'10º':{s1n:3,s1max:8,s2jdc:2,s2gin:1,s2are:1,s2out:2,s2max:13.5},'11º':{s1n:3,s1max:8,s2jdc:2,s2gin:1,s2are:1,s2out:2,s2max:14},'12º':{s1n:3,s1max:8,s2jdc:2,s2gin:1,s2are:1,s2out:2,s2max:14.5}};
+
+  function getNote(pts,semNum){
+    const table=convTables[ano]; if(!table){const lg=[{min:14.5,n:20},{min:13,n:19},{min:12.5,n:18},{min:12,n:17},{min:10,n:16},{min:9.5,n:15},{min:9,n:14},{min:7,n:13},{min:6.5,n:12},{min:5.5,n:11},{min:4.5,n:10},{min:3,n:9},{min:2.5,n:8},{min:2,n:7},{min:1.5,n:6},{min:1,n:5}]; for(const r of lg){if(pts>=r.min)return r.n;} return 0;}
+    const rows=semNum===2?table.s2:table.s1; for(const r of rows){if(pts>=r.min)return r.n;} return 5;
+  }
+
+  const jdcActivities=['Andebol','Basquetebol','Futebol','Voleibol'];
+  const gadActivities=['Ginástica'];
+  const areActivities=['Dança'];
+  const outrasActivities=['Atletismo','Badminton','Corfebol','Hóquei em Campo/Floorbol','Orientação','Rugby','Softbol/Basebol','Ténis de Mesa','Ultimate Frisbee'];
+  const fitescolaTests=['Vai-Vem (resistência aeróbia)','Abdominais (força resistente abdominal)','Flexões de braços (força resistente superior)','Senta e alcança (flexibilidade)','Agilidade/impulsão horizontal'];
+
+  // Ler valores do objeto dados
+  const fitVal=(i,s)=>{ const v=d.fitescola?.[`fit-${i}-s${s}`]; return v!==undefined&&v!==''?String(v):''; };
+  const fitLabel=(i,s)=>{ const v=fitVal(i,s); return v==='0'?'PM':v==='0.5'?'ZS':v==='1'?'PA':'—'; };
+  const actVal=(pre,i,s)=>{ const v=d.atividades?.[`${pre}${i}-s${s}`]; return v!==undefined?parseFloat(v)||0:0; };
+  const ieaMap={'0':'—','1':'I','2':'E','3':'A'};
+  const actLabel=(pre,i,s)=>{ const v=d.atividades?.[`${pre}${i}-s${s}`]||'0'; return ieaMap[String(v)]||v; };
+
+  // Calcular totais FITescola
+  const sumFit=(s)=>{ let sum=0; fitescolaTests.forEach((_,i)=>{ const v=d.fitescola?.[`fit-${i}-s${s}`]; if(v!==''&&v!==undefined)sum+=parseFloat(v)||0; }); return Math.min(sum,5); };
+  const fit1s=sumFit(1), fit2s=sumFit(2);
+  const fit1sHas=fitescolaTests.some((_,i)=>d.fitescola?.[`fit-${i}-s1`]!==undefined&&d.fitescola?.[`fit-${i}-s1`]!=='');
+  const fit2sHas=fitescolaTests.some((_,i)=>d.fitescola?.[`fit-${i}-s2`]!==undefined&&d.fitescola?.[`fit-${i}-s2`]!=='');
+
+  // Calcular totais Atividades
+  const rule=anoRules[ano]||anoRules['10º'];
+  const jdcVals=jdcActivities.map((_,i)=>({s1:actVal('jdc',i,1),s2:actVal('jdc',i,2)}));
+  const gadVals=gadActivities.map((_,i)=>({s1:actVal('gad',i,1),s2:actVal('gad',i,2)}));
+  const areVals=areActivities.map((_,i)=>({s1:actVal('are',i,1),s2:actVal('are',i,2)}));
+  const outVals=outrasActivities.map((_,i)=>({s1:actVal('out',i,1),s2:actVal('out',i,2)}));
+  const areCountsAsOutras=['7º','8º'].includes(ano);
+  const all1=[...jdcVals,...gadVals,...areVals,...outVals].map(v=>v.s1).sort((a,b)=>b-a);
+  const t1_1s=Math.min(all1.slice(0,rule.s1n).reduce((a,b)=>a+b,0),rule.s1max);
+  let s2=0;
+  s2+=jdcVals.map(v=>v.s2).sort((a,b)=>b-a).slice(0,rule.s2jdc).reduce((a,b)=>a+b,0);
+  s2+=gadVals.map(v=>v.s2).sort((a,b)=>b-a).slice(0,rule.s2gin).reduce((a,b)=>a+b,0);
+  if(!areCountsAsOutras) s2+=areVals.map(v=>v.s2).sort((a,b)=>b-a).slice(0,rule.s2are).reduce((a,b)=>a+b,0);
+  const outPool=areCountsAsOutras?[...areVals,...outVals]:outVals;
+  s2+=outPool.map(v=>v.s2).sort((a,b)=>b-a).slice(0,rule.s2out).reduce((a,b)=>a+b,0);
+  const t1_2s=Math.min(s2,rule.s2max);
+  const act1sHas=[...jdcVals,...gadVals,...areVals,...outVals].some(v=>v.s1>0);
+  const act2sHas=[...jdcVals,...gadVals,...areVals,...outVals].some(v=>v.s2>0);
+
+  // Calcular Questão Aula
+  const q1raw=d.questaoS1||''; const q2raw=d.questaoS2||'';
+  const q1nota=q1raw!==''?parseFloat(String(q1raw).replace(',','.')):null;
+  const q2nota=q2raw!==''?parseFloat(String(q2raw).replace(',','.')):null;
+  const ano789q=['7º','8º','9º'].includes(ano);
+  function notaToQPts(n){ if(n===null)return 0; if(ano789q){if(n>=75)return 1.5;if(n>=67.5)return 1;if(n>=47.5)return 0.5;return 0;}else{if(n>=17.5)return 1.5;if(n>=13.5)return 1;if(n>=9.5)return 0.5;return 0;} }
+  const t3_1s=notaToQPts(q1nota); const t3_2s=notaToQPts(q2nota);
+  const t3media=q1nota!==null&&q2nota!==null?(t3_1s+t3_2s)/2:(q1nota!==null?t3_1s:null);
+
+  // Totais C&C
+  const t4_1s=fit1s+t1_1s+t3_1s;
+  const fit_media=(fit1sHas&&fit2sHas)?(fit1s+fit2s)/2:null;
+  const t4_2s=(fit_media!==null&&act2sHas&&q2nota!==null)?fit_media+t1_2s+t3media:null;
+  const avcc_1s=(fit1sHas||act1sHas||q1nota!==null)?getNote(t4_1s,1):null;
+  const avcc_2s=t4_2s!==null?getNote(t4_2s,2):null;
+  const isPct=!!(convTables[ano]&&convTables[ano].pct);
+
+  // Atitudes
+  const at1s1=parseFloat(d.atitudes?.['resp-s1'])||0;
+  const at1s2=parseFloat(d.atitudes?.['resp-s2'])||0;
+  const at2s1=parseFloat(d.atitudes?.['exig-s1'])||0;
+  const at2s2=parseFloat(d.atitudes?.['exig-s2'])||0;
+  const at1sSelected=!!(d.atitudes?.['resp-s1']||d.atitudes?.['exig-s1']);
+  const at2sSelected=!!(d.atitudes?.['resp-s2']||d.atitudes?.['exig-s2']);
+  const t7_1s=at1s1+at2s1; const t7_2s=at1s2+at2s2;
+  const bothAt=at1sSelected&&at2sSelected;
+  const atMedia=bothAt?(t7_1s+t7_2s)/2:(at1sSelected?t7_1s:(at2sSelected?t7_2s:0));
+  const atHasAny=at1sSelected||at2sSelected;
+
+  // Nota final
+  const cc1s=avcc_1s!==null?avcc_1s:0; const av1s=at1sSelected?t7_1s:0;
+  const fn1s=(avcc_1s!==null||at1sSelected)?(cc1s*0.85+av1s*0.15):null;
+  const cc2s=avcc_2s!==null?avcc_2s:0;
+  const fn2s=(avcc_2s!==null||atHasAny)?(cc2s*0.85+atMedia*0.15):null;
+  const notaFinal1s=d.notaFinal1s||(fn1s!==null?String(Math.round(fn1s)):'—');
+  const notaFinal2s=d.notaFinal2s||(fn2s!==null?String(Math.round(fn2s)):'—');
+
+  // === GERAR PDF ===
+  // FITESCOLA
+  sectionHeader('Aptidao Fisica — FITescola','1.1'); colHeaders();
+  fitescolaTests.forEach((t,i)=>{ checkNewPage(6); dataRow(t,fitLabel(i,1),fitLabel(i,2),i%2===1); });
+  totalRow('Total Pontos FITescola',fit1sHas?fit1s.toFixed(1):'—',fit2sHas?fit2s.toFixed(1):'—');
+  totalBlue('Total Pontos Final de Ano (media 2 semestres)',fit_media!==null?fit_media.toFixed(2):'—');
+
+  // ATIVIDADES
+  checkNewPage(12); sectionHeader('Atividades Fisicas','1.2'); colHeaders();
+  const allActs=[...jdcActivities.map((a,i)=>({label:a,pre:'jdc',i})),...gadActivities.map((a,i)=>({label:a,pre:'gad',i})),...areActivities.map((a,i)=>({label:a,pre:'are',i})),...outrasActivities.map((a,i)=>({label:a,pre:'out',i}))];
+  allActs.forEach((a,idx)=>{ checkNewPage(6); dataRow(a.label,actLabel(a.pre,a.i,1),actLabel(a.pre,a.i,2),idx%2===1); });
+  totalRow('Total Pontos Atividades Fisicas',act1sHas?t1_1s.toFixed(1):'—',act2sHas?t1_2s.toFixed(1):'—');
+  totalBlue('Total Pontos Final de Ano',act2sHas?t1_2s.toFixed(1):'—');
+
+  // QUESTÃO AULA
+  checkNewPage(20); sectionHeader('Questao Aula','1.3'); colHeaders();
+  dataRow('Nota obtida',q1nota!==null?String(q1nota):'—',q2nota!==null?String(q2nota):'—',false);
+  totalRow('Pontos atribuidos',q1nota!==null?t3_1s.toFixed(1):'—',q2nota!==null?t3_2s.toFixed(1):'—');
+  totalBlue('Total Pontos Final de Ano (media)',t3media!==null?t3media.toFixed(2):'—');
+
+  // RESUMO C&C
+  checkNewPage(20); sectionHeader('Conhecimentos e Capacidades — Resumo (85%)'); colHeaders();
+  totalRow('Total Pontos C&C',(fit1sHas||act1sHas||q1nota!==null)?t4_1s.toFixed(1):'—',t4_2s!==null?t4_2s.toFixed(1):'—');
+  doc.setFillColor(209,250,229); doc.roundedRect(12,y,186,8,1,1,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(6,95,70);
+  doc.text('Nota C&C 1º Semestre: '+(avcc_1s!==null?(isPct?avcc_1s+'%':avcc_1s):'—'),14,y+5.5);
+  doc.text('Nota C&C Final de Ano: '+(avcc_2s!==null?(isPct?avcc_2s+'%':avcc_2s):'—'),120,y+5.5);
+  y+=12;
+
+  // ATITUDES
+  checkNewPage(12); sectionHeader('Atitudes e Valores (15%)','2'); colHeaders('1º Sem.','2º Sem.');
+  dataRow('Responsabilidade e integridade (pontos)',at1sSelected?String(at1s1):'—',at2sSelected?String(at1s2):'—',false);
+  dataRow('Exigencia e excelencia (pontos)',at1sSelected?String(at2s1):'—',at2sSelected?String(at2s2):'—',true);
+  doc.setFillColor(209,250,229); doc.roundedRect(12,y,186,8,1,1,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(6,95,70);
+  doc.text('Nota Atitudes 1ºS: '+(at1sSelected?t7_1s:'—'),14,y+5.5);
+  doc.text('Nota Atitudes Final Ano: '+(atHasAny?atMedia.toFixed(2):'—'),115,y+5.5);
+  y+=12;
+
+  // NOTA FINAL
+  checkNewPage(20);
+  doc.setFillColor(6,95,70); doc.roundedRect(12,y,186,18,2,2,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(14);
+  doc.text('NOTA FINAL',105,y+7,{align:'center'});
+  doc.setFontSize(12);
+  doc.text('1º Semestre: '+notaFinal1s+'          Final de Ano: '+notaFinal2s,105,y+14,{align:'center'});
+  y+=22;
+
+  doc.setFont('helvetica','italic'); doc.setFontSize(7.5); doc.setTextColor(150,150,150);
+  doc.text('Autoavaliacao submetida em '+dataEnvio+' — Dossier Digital EF',105,y,{align:'center'});
+
+  doc.save('FichaAA_'+nome.replace(/\s+/g,'_')+'_'+sem+'S.pdf');
 }
 
 // === AVALIAÇÃO ATESTADO MÉDICO — 1º SEMESTRE (generalista, sem ligação a turmas) ===
@@ -4048,6 +4277,7 @@ function renderModal(){
 
 // === HELPERS ===
 function esc(s){if(s==null)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escJ(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');}
 function fmtDate(dt){if(!dt)return '';const[y,m,d]=dt.split('-');return`${d}/${m}/${y}`;}
 
 // Calcula o espaço rotacionado para uma dada semana
