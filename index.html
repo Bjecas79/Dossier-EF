@@ -21,6 +21,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f5;color:#1a2332;height:100vh;display:flex;flex-direction:column;overflow:hidden}
@@ -930,7 +931,7 @@ function renderAvaliacao(){
     {id:'aid',icon:'📋',label:'AID'},
     {id:'sem1',icon:'📘',label:'1º SEMESTRE'},
     {id:'sem2',icon:'📗',label:'2º SEMESTRE'},
-    {id:'sem1am',icon:'📙',label:'AV. ALUNOS A.M.'},
+    {id:'sem1am',icon:'📙',label:'ALUNOS A.M.'},
     {id:'fichaaa',icon:'📝',label:'FICHA AA'},
   ];
 
@@ -939,9 +940,13 @@ function renderAvaliacao(){
     ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%">'
       + subPastas.map((s,idx)=>{
           const active=filterAvaliacaoSub===s.id;
-          const isLast=idx===subPastas.length-1;
+          const total=subPastas.length;
+          // últimos 2 botões partilham a última linha (cada um ocupa 1 de 2 colunas num subgrid)
+          const isSecondLast=idx===total-2;
+          const isLast=idx===total-1;
+          const colStyle=isSecondLast?'grid-column:1/2;':(isLast?'grid-column:2/4;':'');
           return '<button class="aval-sub-btn" data-sub="'+s.id+'" style="'
-            +(isLast?'grid-column:1/-1;':'')+';display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;border:2px solid '+(active?'var(--blue)':'var(--border)')+';background:'+(active?'var(--blue)':'#fff')+';color:'+(active?'#fff':'var(--navy)')+';transition:all 0.15s;text-align:center;line-height:1.2;min-height:52px;box-sizing:border-box"><span style="font-size:15px">'+s.icon+'</span>'+s.label+'</button>';
+            +colStyle+';display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;border:2px solid '+(active?'var(--blue)':'var(--border)')+';background:'+(active?'var(--blue)':'#fff')+';color:'+(active?'#fff':'var(--navy)')+';transition:all 0.15s;text-align:center;line-height:1.2;min-height:52px;box-sizing:border-box"><span style="font-size:15px">'+s.icon+'</span>'+s.label+'</button>';
         }).join('')
       +'</div>'
     : subPastas.map(s=>{
@@ -1095,7 +1100,9 @@ function renderFitescola(turma){
   const subId=filterAvaliacaoSub; // fitescola | fitescola1s | fitescola2s
   const key=`${turma.id}__${subId}`;
   const subTitles={fitescola:'FITESCOLA - AID',fitescola1s:'FITESCOLA 1º Semestre',fitescola2s:'FITESCOLA 2º Semestre'};
+  const subTitlesMob={fitescola:'Fitescola - AID',fitescola1s:'FITESCOLA - 1ºS',fitescola2s:'FITESCOLA - 2ºS'};
   const subTitle=subTitles[subId]||'FITESCOLA';
+  const subTitleMob=subTitlesMob[subId]||'FITESCOLA';
   if(!S.avaliacao[key]) S.avaliacao[key]={resultados:{},obs:''};
   const dados=S.avaliacao[key];
   const anoLetivo=parseInt((S.anoLetivo||'2025/26').split('/')[0]);
@@ -1173,7 +1180,7 @@ function renderFitescola(turma){
 
   return `<div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div style="font-size:14px;font-weight:700;color:var(--navy)">🏃 ${subTitle} — ${esc(turma.nome)}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--navy)">🏃 ${mob?subTitleMob:subTitle+' — '+esc(turma.nome)}</div>
       <div style="display:flex;gap:8px">
         <button class="btn" id="exportPdfAvalBtn" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;font-size:12px;font-weight:700">📄 Exportar PDF</button>
         <button class="btn btn-primary" id="saveAvalBtn">💾 Guardar</button>
@@ -1687,7 +1694,7 @@ function renderSem1AM(){
   return `<div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div>
-        <div style="font-size:15px;font-weight:800;color:var(--navy)">📙 Avaliação Alunos com Atestado Médico</div>
+        <div style="font-size:15px;font-weight:800;color:var(--navy)">📙 ${isMobile()?'Alunos A.M.':'Avaliação Alunos com Atestado Médico'}</div>
         <div style="font-size:11px;color:var(--gray);margin-top:2px">Tabela generalista — preencha Aluno, Ano, Turma e n.º manualmente</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
@@ -1711,6 +1718,7 @@ function renderSem1AM(){
 }
 function renderAvaliacaoSub(turma){
   if(!S.avaliacao) S.avaliacao={};
+  const mob=isMobile();
   const key=`${turma.id}__${filterAvaliacaoSub}`;
   if(filterAvaliacaoSub==='fitescola') return renderFitescola(turma);
   if(filterAvaliacaoSub==='fitescola1s') return renderFitescola(turma);
@@ -1719,6 +1727,7 @@ function renderAvaliacaoSub(turma){
   if(!S.avaliacao[key]) S.avaliacao[key]={notas:{},obsAlunos:{},pontos:{},obs:''};
   const dados=S.avaliacao[key];
   const subLabels={aid:'AID — Avaliação Inicial / Diagnóstica',sem1:'1º SEMESTRE',sem2:'2º SEMESTRE'};
+  const subLabelsMob={aid:'AID',sem1:'1ºS',sem2:'2ºS',sem1am:'Alunos A.M.'};
   const showExtra=filterAvaliacaoSub==='aid';
   const isSem1=filterAvaliacaoSub==='sem1'||filterAvaliacaoSub==='sem2';
   const isSem2=filterAvaliacaoSub==='sem2';
@@ -2212,7 +2221,7 @@ function renderAvaliacaoSub(turma){
 
   return `<div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div style="font-size:14px;font-weight:700;color:var(--navy)">${subLabels[filterAvaliacaoSub]||''} — ${esc(turma.nome)}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--navy)">${mob?(subLabelsMob[filterAvaliacaoSub]||subLabels[filterAvaliacaoSub]||''):(subLabels[filterAvaliacaoSub]||'')+' — '+esc(turma.nome)}</div>
       <div style="display:flex;gap:8px">
         <button class="btn" id="exportPdfAvalBtn" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;font-size:12px;font-weight:700">📄 Exportar PDF</button>
         <button class="btn" id="exportExcelAvalBtn" style="background:#16a34a;color:#fff;border-color:#15803d">📊 Exportar Excel</button>
