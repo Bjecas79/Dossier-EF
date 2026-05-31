@@ -1362,21 +1362,25 @@ let _fichaAALinks = {1: null, 2: null};
 async function carregarLinksCurtos(turmaId, userId, anoLetivo){
   _fichaAALinks = {1: null, 2: null};
   for(const sem of [1,2]){
+    const el=document.getElementById(`link-display-${sem}`);
     try{
-      const {data:existing} = await supa.from('fichas_links').select('code').eq('user_id',userId).eq('turma_id',String(turmaId)).eq('semestre',sem).eq('ano_letivo',anoLetivo).single();
+      // maybeSingle() devolve null sem erro quando não existe registo
+      const {data:existing, error:selErr} = await supa.from('fichas_links').select('code').eq('user_id',userId).eq('turma_id',String(turmaId)).eq('semestre',sem).eq('ano_letivo',anoLetivo).maybeSingle();
+      if(selErr) throw selErr;
       let code;
-      if(existing){ code=existing.code; }
-      else {
+      if(existing){
+        code = existing.code;
+      } else {
         code = Math.random().toString(36).slice(2,8);
-        await supa.from('fichas_links').insert({code, user_id:userId, turma_id:String(turmaId), semestre:sem, ano_letivo:anoLetivo});
+        const {error:insErr} = await supa.from('fichas_links').insert({code, user_id:userId, turma_id:String(turmaId), semestre:sem, ano_letivo:anoLetivo});
+        if(insErr) throw insErr;
       }
       const link=`https://bjecas79.github.io/Ficha-AA/ficha_aluno.html?c=${code}`;
       _fichaAALinks[sem]=link;
-      const el=document.getElementById(`link-display-${sem}`);
       if(el) el.textContent=link;
     }catch(e){
-      const el=document.getElementById(`link-display-${sem}`);
-      if(el) el.textContent='Erro ao gerar link';
+      console.error(`Erro ao gerar link ${sem}ºS:`, e);
+      if(el) el.textContent='Erro ao gerar link: '+e.message;
     }
   }
   // Auto-carregar fichas já submetidas (sem precisar clicar Sincronizar)
