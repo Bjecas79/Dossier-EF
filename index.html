@@ -1331,6 +1331,7 @@ function renderFichaAA(turma){
         <div id="link-display-1" style="font-size:12px;color:#64748b;background:#fff;border-radius:6px;padding:7px;margin-bottom:8px;border:1px solid #dbeafe;word-break:break-all">⏳ A gerar link...</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button id="btn-copiar-1" onclick="copiarLinkCurto(1)" style="flex:1;padding:7px 10px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">🔗 Copiar Link</button>
+          <button id="btn-abrir-1" onclick="abrirLinkCurto(1)" style="flex:1;padding:7px 10px;background:#7c3aed;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;display:none" class="desktop-only-btn">↗ Abrir</button>
           <button onclick="sincronizarFichas(${turma.id},1)" style="flex:1;padding:7px 10px;background:#0e7490;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">🔄 Sincronizar</button>
         </div>
       </div>
@@ -1339,6 +1340,7 @@ function renderFichaAA(turma){
         <div id="link-display-2" style="font-size:12px;color:#64748b;background:#fff;border-radius:6px;padding:7px;margin-bottom:8px;border:1px solid #bbf7d0;word-break:break-all">⏳ A gerar link...</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button id="btn-copiar-2" onclick="copiarLinkCurto(2)" style="flex:1;padding:7px 10px;background:#16a34a;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">🔗 Copiar Link</button>
+          <button id="btn-abrir-2" onclick="abrirLinkCurto(2)" style="flex:1;padding:7px 10px;background:#7c3aed;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;display:none" class="desktop-only-btn">↗ Abrir</button>
           <button onclick="sincronizarFichas(${turma.id},2)" style="flex:1;padding:7px 10px;background:#0e7490;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">🔄 Sincronizar</button>
         </div>
       </div>
@@ -1377,6 +1379,7 @@ async function carregarLinksCurtos(turmaId, userId, anoLetivo){
       if(el) el.textContent='Erro ao gerar link';
     }
   }
+  atualizarBotoesAbrir();
 }
 
 function copiarLinkCurto(sem){
@@ -1387,6 +1390,22 @@ function copiarLinkCurto(sem){
     if(btn){btn.textContent='✅ Copiado!'; setTimeout(()=>btn.textContent='🔗 Copiar Link',2000);}
   });
 }
+
+function abrirLinkCurto(sem){
+  const link=_fichaAALinks[sem];
+  if(!link) return;
+  window.open(link,'_blank');
+}
+
+function atualizarBotoesAbrir(){
+  const mostrar = window.innerWidth > 600;
+  [1,2].forEach(sem=>{
+    const btn=document.getElementById(`btn-abrir-${sem}`);
+    if(btn) btn.style.display = mostrar ? 'flex' : 'none';
+  });
+}
+
+window.addEventListener('resize', atualizarBotoesAbrir);
 
 async function sincronizarFichas(turmaId, sem){
   const msgEl=document.getElementById('fichaaa-sync-msg');
