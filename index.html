@@ -1254,6 +1254,7 @@ function calcClassFinal(totalPontos, ano, semestre){
 // === FICHA AA ===
 function renderFichaAA(turma){
   if(!S.fichaAA) S.fichaAA={};
+  const mob=isMobile();
   const fichaUrl='https://bjecas79.github.io/Ficha-AA/ficha_autoavaliacao_ef_10ano_24.html';
   const userId=(currentUser&&currentUser.id)||'';
   const anoLetivo=S.anoLetivo||'';
@@ -1311,7 +1312,6 @@ function renderFichaAA(turma){
     </tr>`;
   }).join('');
 
-  const mob=isMobile();
   return `<div style="padding:12px 0">
     ${mob?'':`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
       <div style="font-size:15px;font-weight:800;color:var(--navy)">📝 Fichas de Autoavaliação — ${esc(turma.nome)}</div>
@@ -2690,7 +2690,7 @@ function renderResumoAnual(){
       const v1=n1!==undefined&&n1!==''&&n1!==null?n1:'—';
       const v2=n2!==undefined&&n2!==''&&n2!==null?n2:'—';
       return `<tr style="background:${i%2===0?'var(--gray2)':'#fff'}">
-        <td style="padding:3px 5px;font-size:11px;color:var(--navy);border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${esc(nome)}</td>
+        <td style="padding:3px 5px;font-size:11px;color:var(--navy);border-bottom:1px solid var(--border)">${esc(nome)}</td>
         <td style="padding:3px 4px;text-align:center;font-size:11px;font-weight:700;color:${notaColor(v1)};background:${notaBg(v1)};border-bottom:1px solid var(--border);white-space:nowrap">${v1}</td>
         <td style="padding:3px 4px;text-align:center;font-size:11px;font-weight:700;color:${notaColor(v2)};background:${notaBg(v2)};border-bottom:1px solid var(--border);white-space:nowrap">${v2}</td>
       </tr>`;
