@@ -2646,6 +2646,113 @@ function calcAvisos(incluirLidos=false){
   return incluirLidos ? semEliminados : semEliminados.filter(a=>!lidos[a.id]);
 }
 
+function notaColor(n){
+  if(n===null||n===undefined||n==='—') return '#94a3b8';
+  const v=parseInt(n);
+  if(isNaN(v)) return '#94a3b8';
+  if(v>=18) return '#16a34a';
+  if(v>=14) return '#2563eb';
+  if(v>=10) return '#d97706';
+  return '#dc2626';
+}
+
+function notaBg(n){
+  if(n===null||n===undefined||n==='—') return 'transparent';
+  const v=parseInt(n);
+  if(isNaN(v)) return 'transparent';
+  if(v>=18) return '#f0fdf4';
+  if(v>=14) return '#eff6ff';
+  if(v>=10) return '#fffbeb';
+  return '#fef2f2';
+}
+
+function renderResumoAnual(){
+  if(!S.turmas||!S.turmas.length) return '';
+
+  // Só turmas com pelo menos 1 nota
+  const turmasComDados = S.turmas.filter(t=>{
+    const k1=`${t.id}__sem1`, k2=`${t.id}__sem2`;
+    const n1=S.avaliacao?.[k1]?.notas||{};
+    const n2=S.avaliacao?.[k2]?.notas||{};
+    return Object.keys(n1).length>0||Object.keys(n2).length>0;
+  });
+  if(!turmasComDados.length) return '';
+
+  const cols = turmasComDados.map(t=>{
+    const k1=`${t.id}__sem1`, k2=`${t.id}__sem2`;
+    const notas1=S.avaliacao?.[k1]?.notas||{};
+    const notas2=S.avaliacao?.[k2]?.notas||{};
+    const alunos=(t.alunos||[]).map(a=>typeof a==='string'?a:(a.nome||'')).filter(Boolean);
+
+    // Médias da turma
+    const vals1=alunos.map(n=>parseFloat(notas1[n])).filter(v=>!isNaN(v)&&v>0);
+    const vals2=alunos.map(n=>parseFloat(notas2[n])).filter(v=>!isNaN(v)&&v>0);
+    const med1=vals1.length?Math.round(vals1.reduce((a,b)=>a+b,0)/vals1.length*10)/10:null;
+    const med2=vals2.length?Math.round(vals2.reduce((a,b)=>a+b,0)/vals2.length*10)/10:null;
+
+    return {t, alunos, notas1, notas2, med1, med2};
+  });
+
+  const tableHtml = cols.map(({t,alunos,notas1,notas2,med1,med2})=>{
+    const rows = alunos.map((nome,i)=>{
+      const n1=notas1[nome]; const n2=notas2[nome];
+      const v1=n1!==undefined&&n1!==''&&n1!==null?n1:'—';
+      const v2=n2!==undefined&&n2!==''&&n2!==null?n2:'—';
+      return `<tr style="background:${i%2===0?'var(--gray2)':'#fff'}">
+        <td style="padding:4px 8px;font-size:12px;color:var(--navy);border-bottom:1px solid var(--border);white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">${esc(nome)}</td>
+        <td style="padding:4px 6px;text-align:center;font-size:12px;font-weight:700;color:${notaColor(v1)};background:${notaBg(v1)};border-bottom:1px solid var(--border)">${v1}</td>
+        <td style="padding:4px 6px;text-align:center;font-size:12px;font-weight:700;color:${notaColor(v2)};background:${notaBg(v2)};border-bottom:1px solid var(--border)">${v2}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div style="min-width:220px;flex:1">
+      <div style="background:var(--blue);color:#fff;padding:8px 10px;border-radius:8px 8px 0 0;text-align:center">
+        <div style="font-size:13px;font-weight:800">${esc(t.nome)}</div>
+        <div style="font-size:11px;opacity:0.85;margin-top:2px">${alunos.length} alunos</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:#1e3a5f">
+            <th style="padding:5px 8px;text-align:left;font-size:11px;color:#cbd5e1;font-weight:600">Aluno</th>
+            <th style="padding:5px 6px;text-align:center;font-size:11px;color:#cbd5e1;font-weight:600;white-space:nowrap">1ºS</th>
+            <th style="padding:5px 6px;text-align:center;font-size:11px;color:#cbd5e1;font-weight:600;white-space:nowrap">2ºS</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr style="background:#e0f2fe">
+            <td style="padding:5px 8px;font-size:11px;font-weight:700;color:#0369a1">Média turma</td>
+            <td style="padding:5px 6px;text-align:center;font-size:12px;font-weight:800;color:${notaColor(med1)}">${med1!==null?med1:'—'}</td>
+            <td style="padding:5px 6px;text-align:center;font-size:12px;font-weight:800;color:${notaColor(med2)}">${med2!==null?med2:'—'}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+  }).join('');
+
+  return `<div class="card" style="margin-bottom:20px">
+    <div style="font-size:14px;font-weight:800;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:8px">
+      📋 Avaliação — Resumo Anual Comparativo
+      <span style="font-size:11px;font-weight:500;color:var(--gray);background:var(--gray2);padding:2px 8px;border-radius:12px">Notas finais por turma</span>
+    </div>
+    <div style="overflow-x:auto">
+      <div style="display:flex;gap:12px;min-width:max-content;padding-bottom:4px">
+        ${tableHtml}
+      </div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap">
+      ${[{c:'#f0fdf4',tc:'#16a34a',l:'≥ 18'},
+         {c:'#eff6ff',tc:'#2563eb',l:'14–17'},
+         {c:'#fffbeb',tc:'#d97706',l:'10–13'},
+         {c:'#fef2f2',tc:'#dc2626',l:'< 10'}
+        ].map(x=>`<div style="display:flex;align-items:center;gap:5px">
+          <div style="width:16px;height:16px;border-radius:3px;background:${x.c};border:1px solid ${x.tc}22"></div>
+          <span style="font-size:11px;color:var(--gray)">${x.l}</span>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
 function renderPainel(){
   const modsBySem=getAllModalidadesCountsBySem();
   // Total de aulas dadas = sumários com sumário E modalidadeSumario preenchidos (mesma fonte da planificação)
@@ -2729,6 +2836,7 @@ function renderPainel(){
       </div>`).join('')}
     </div>
     ${modSection}
+    ${renderResumoAnual()}
   </div>`;
 }
 
