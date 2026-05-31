@@ -2203,7 +2203,8 @@ function renderAvaliacaoSub(turma){
       const maxPtsAtiv2s={'7º':8,'8º':9.5,'9º':10.5,'10º':13.5,'11º':14,'12º':14.5};
       const maxPtsAtiv=isSem2?(maxPtsAtiv2s[turma.ano]||13.5):({'7º':4.5,'8º':5.5,'9º':7,'10º':8,'11º':8,'12º':8.5}[turma.ano]||8);
       const pontosAtiv=Math.min(maxPtsAtiv, total);
-      const conhecClassif1s = dados.conhecClassif?.[nome]??'';
+      const sem1DadosConh = isSem2 ? (S.avaliacao?.[`${turma.id}__sem1`]||{}) : dados;
+      const conhecClassif1s = sem1DadosConh.conhecClassif?.[nome]??'';
       const conhecClassif2s = isSem2 ? (dados.conhecClassif2s?.[nome]??'') : '';
       const mediaConhec = isSem2
         ? (()=>{
@@ -2265,9 +2266,8 @@ function renderAvaliacaoSub(turma){
         <td class="resumo-cell" style="padding:5px 4px;border:1px solid var(--border);text-align:center;font-weight:700;font-size:13px;color:#7c3aed;background:#f5f3ff">${total||''}</td>
         <td class="resumo-cell" style="padding:5px 4px;border:1px solid var(--border);text-align:center;font-weight:700;font-size:15px;color:#365314;background:#fef08a">${pontosAtiv||''}</td>
         ${isSem2
-          ? `<td style="padding:3px 2px;border:1px solid var(--border);text-align:center;background:#fef9f0">
-              <input type="number" min="0" max="${['7º','8º','9º'].includes(turma.ano)?100:20}" step="0.5" class="conh-classif" data-nome="${esc(nome)}" data-ano="${esc(turma.ano)}" value="${esc(String(conhecClassif1s||''))}" placeholder="—"
-                style="width:50px;text-align:center;border:1px solid #fbbf24;border-radius:4px;padding:3px 2px;font-size:11px;background:transparent;color:#92400e">
+          ? `<td style="padding:5px 4px;border:1px solid var(--border);text-align:center;font-weight:700;font-size:13px;color:#92400e;background:#fef9f0">
+              <span>${conhecClassif1s!==''?conhecClassif1s:'—'}</span>
             </td>
             <td style="padding:3px 2px;border:1px solid var(--border);text-align:center;background:#fef3c7">
               <input type="number" min="0" max="${['7º','8º','9º'].includes(turma.ano)?100:20}" step="0.5" class="conh-classif2s" data-nome="${esc(nome)}" data-ano="${esc(turma.ano)}" value="${esc(String(conhecClassif2s||''))}" placeholder="—"
@@ -2671,8 +2671,8 @@ function renderResumoAnual(){
 
   const cols = S.turmas.map(t=>{
     const k1=`${t.id}__sem1`, k2=`${t.id}__sem2`;
-    const notas1=S.avaliacao?.[k1]?.notas||{};
-    const notas2=S.avaliacao?.[k2]?.notas||{};
+    const notas1=S.avaliacao?.[k1]?.classifFinalSem||{};
+    const notas2=S.avaliacao?.[k2]?.classifFinalSem||{};
     const alunos=(t.alunos||[]).map(a=>typeof a==='string'?a:(a.nome||'')).filter(Boolean);
 
     // Médias da turma
