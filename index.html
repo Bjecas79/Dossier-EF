@@ -1180,7 +1180,7 @@ function renderFitescola(turma){
 
   return `<div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div style="font-size:14px;font-weight:700;color:var(--navy)">🏃 ${mob?subTitleMob:subTitle+' — '+esc(turma.nome)}</div>
+      ${mob?'':`<div style="font-size:14px;font-weight:700;color:var(--navy)">🏃 ${subTitle} — ${esc(turma.nome)}</div>`}
       <div style="display:flex;gap:8px">
         <button class="btn" id="exportPdfAvalBtn" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;font-size:12px;font-weight:700">📄 Exportar PDF</button>
         <button class="btn btn-primary" id="saveAvalBtn">💾 Guardar</button>
@@ -1284,14 +1284,14 @@ function renderFichaAA(turma){
 
   // Tabela de alunos
   const theadHtml=`<thead><tr style="background:var(--bg);position:sticky;top:0;z-index:2">
-    <th style="padding:8px 10px;text-align:left;font-size:12px;font-weight:700;color:var(--navy);border:1px solid var(--border);min-width:180px">Aluno</th>
-    <th style="padding:8px 10px;text-align:center;font-size:12px;font-weight:700;color:var(--navy);border:1px solid var(--border);background:#eff6ff">Ficha AA 1º Semestre</th>
-    <th style="padding:8px 10px;text-align:center;font-size:12px;font-weight:700;color:var(--navy);border:1px solid var(--border);background:#f0fdf4">Ficha AA 2º Semestre</th>
+    <th style="padding:8px 10px;text-align:left;font-size:12px;font-weight:700;color:var(--navy);border:1px solid var(--border);${mob?'min-width:90px':'min-width:180px'}">Aluno</th>
+    <th style="padding:${mob?'6px 4px':'8px 10px'};text-align:center;font-size:${mob?'10px':'12px'};font-weight:700;color:var(--navy);border:1px solid var(--border);background:#eff6ff">${mob?'1ºS':'Ficha AA 1º Semestre'}</th>
+    <th style="padding:${mob?'6px 4px':'8px 10px'};text-align:center;font-size:${mob?'10px':'12px'};font-weight:700;color:var(--navy);border:1px solid var(--border);background:#f0fdf4">${mob?'2ºS':'Ficha AA 2º Semestre'}</th>
   </tr>
   <tr style="background:var(--bg);position:sticky;top:34px;z-index:2">
     <th style="border:1px solid var(--border)"></th>
-    <th style="padding:6px 8px;text-align:center;font-size:11px;color:#64748b;border:1px solid var(--border);background:#eff6ff">Submetida pelo Aluno</th>
-    <th style="padding:6px 8px;text-align:center;font-size:11px;color:#64748b;border:1px solid var(--border);background:#f0fdf4">Submetida pelo Aluno</th>
+    <th style="padding:6px 8px;text-align:center;font-size:11px;color:#64748b;border:1px solid var(--border);background:#eff6ff">${mob?'':'Submetida pelo Aluno'}</th>
+    <th style="padding:6px 8px;text-align:center;font-size:11px;color:#64748b;border:1px solid var(--border);background:#f0fdf4">${mob?'':'Submetida pelo Aluno'}</th>
   </tr></thead>`;
 
   const tbodyHtml=alunos.map(a=>{
@@ -1311,13 +1311,14 @@ function renderFichaAA(turma){
     </tr>`;
   }).join('');
 
+  const mob=isMobile();
   return `<div style="padding:12px 0">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+    ${mob?'':`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
       <div style="font-size:15px;font-weight:800;color:var(--navy)">📝 Fichas de Autoavaliação — ${esc(turma.nome)}</div>
       ${btnFichaOriginal}
-    </div>
+    </div>`}
     <!-- Painel de links e sincronizar -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:${mob?'1fr':'1fr 1fr'};gap:12px;margin-bottom:16px">
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px">
         <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:8px">🔗 1º SEMESTRE</div>
         <div id="link-display-1" style="font-size:12px;color:#64748b;background:#fff;border-radius:6px;padding:7px;margin-bottom:8px;border:1px solid #dbeafe;word-break:break-all">⏳ A gerar link...</div>
@@ -1340,7 +1341,7 @@ function renderFichaAA(turma){
     <div id="fichaaa-sync-msg" style="display:none;margin-bottom:10px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600"></div>
     <!-- Tabela alunos -->
     <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border)">
-      <table id="fichaaa-table" style="width:100%;border-collapse:collapse;min-width:600px">
+      <table id="fichaaa-table" style="width:100%;border-collapse:collapse;${mob?'':`min-width:600px`}">
         ${theadHtml}
         <tbody>${tbodyHtml}</tbody>
       </table>
@@ -1959,10 +1960,7 @@ function renderSem1AM(){
 
   return `<div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div>
-        <div style="font-size:15px;font-weight:800;color:var(--navy)">📙 ${isMobile()?'Alunos A.M.':'Avaliação Alunos com Atestado Médico'}</div>
-        <div style="font-size:11px;color:var(--gray);margin-top:2px">Tabela generalista — preencha Aluno, Ano, Turma e n.º manualmente</div>
-      </div>
+      ${isMobile()?'':'<div><div style="font-size:15px;font-weight:800;color:var(--navy)">📙 Avaliação Alunos com Atestado Médico</div><div style="font-size:11px;color:var(--gray);margin-top:2px">Tabela generalista — preencha Aluno, Ano, Turma e n.º manualmente</div></div>'}
       <div style="display:flex;gap:8px;align-items:center">
         <button class="btn" id="amExportPdfBtn" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;font-size:12px;font-weight:700">📄 Exportar PDF</button>
         <button class="btn" id="amExportXlsxBtn" style="background:#dcfce7;border-color:#86efac;color:#14532d;font-size:12px;font-weight:700">📊 Exportar Excel</button>
@@ -2487,7 +2485,7 @@ function renderAvaliacaoSub(turma){
 
   return `<div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div style="font-size:14px;font-weight:700;color:var(--navy)">${mob?(subLabelsMob[filterAvaliacaoSub]||subLabels[filterAvaliacaoSub]||''):(subLabels[filterAvaliacaoSub]||'')+' — '+esc(turma.nome)}</div>
+      ${mob?'':`<div style="font-size:14px;font-weight:700;color:var(--navy)">${(subLabels[filterAvaliacaoSub]||'')} — ${esc(turma.nome)}</div>`}
       <div style="display:flex;gap:8px">
         <button class="btn" id="exportPdfAvalBtn" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b;font-size:12px;font-weight:700">📄 Exportar PDF</button>
         <button class="btn" id="exportExcelAvalBtn" style="background:#16a34a;color:#fff;border-color:#15803d">📊 Exportar Excel</button>
@@ -2692,13 +2690,13 @@ function renderResumoAnual(){
       const v1=n1!==undefined&&n1!==''&&n1!==null?n1:'—';
       const v2=n2!==undefined&&n2!==''&&n2!==null?n2:'—';
       return `<tr style="background:${i%2===0?'var(--gray2)':'#fff'}">
-        <td style="padding:3px 5px;font-size:11px;color:var(--navy);border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:0">${esc(nome)}</td>
+        <td style="padding:3px 5px;font-size:11px;color:var(--navy);border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${esc(nome)}</td>
         <td style="padding:3px 4px;text-align:center;font-size:11px;font-weight:700;color:${notaColor(v1)};background:${notaBg(v1)};border-bottom:1px solid var(--border);white-space:nowrap">${v1}</td>
         <td style="padding:3px 4px;text-align:center;font-size:11px;font-weight:700;color:${notaColor(v2)};background:${notaBg(v2)};border-bottom:1px solid var(--border);white-space:nowrap">${v2}</td>
       </tr>`;
     }).join('');
 
-    return `<div style="min-width:0;overflow:hidden">
+    return `<div style="min-width:0">
       <div style="background:var(--blue);color:#fff;padding:5px 6px;border-radius:6px 6px 0 0;text-align:center">
         <div style="font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.nome)}</div>
         <div style="font-size:10px;opacity:0.8">${alunos.length} al.</div>
@@ -2729,12 +2727,14 @@ function renderResumoAnual(){
   }).join('');
 
   return `<div class="card" style="margin-bottom:20px">
-    <div style="font-size:14px;font-weight:800;color:var(--navy);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+    <div style="font-size:14px;font-weight:800;color:var(--navy);margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       📋 Avaliação — Resumo Anual Comparativo
       <span style="font-size:11px;font-weight:500;color:var(--gray);background:var(--gray2);padding:2px 8px;border-radius:12px">Notas finais por turma</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(${nTurmas},1fr);gap:8px">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px">
+    <div style="display:grid;grid-template-columns:repeat(${nTurmas},minmax(110px,1fr));gap:8px;min-width:${nTurmas*118}px">
       ${tableHtml}
+    </div>
     </div>
     <div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap">
       ${[{c:'#f0fdf4',tc:'#16a34a',l:'≥ 18'},
