@@ -936,6 +936,8 @@ function renderAvaliacao(){
   ];
 
   const mob=isMobile();
+  const subPastasMain=subPastas.filter(s=>s.id!=='fichaaa');
+  const subPastaFichaAA=subPastas.find(s=>s.id==='fichaaa');
   const btnHtml=mob
     ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%">'
       + subPastas.map((s,idx)=>{
@@ -945,21 +947,33 @@ function renderAvaliacao(){
           const isSecondLast=idx===total-2;
           const isLast=idx===total-1;
           const colStyle=isSecondLast?'grid-column:1/2;':(isLast?'grid-column:2/4;':'');
+          const isFichaAA=s.id==='fichaaa';
+          const bgActive=isFichaAA?'#7c3aed':'var(--blue)';
+          const borderActive=isFichaAA?'#7c3aed':'var(--blue)';
+          const bgNormal=isFichaAA?'#f5f3ff':'#fff';
+          const borderNormal=isFichaAA?'#c4b5fd':'var(--border)';
+          const colorNormal=isFichaAA?'#6d28d9':'var(--navy)';
           return '<button class="aval-sub-btn" data-sub="'+s.id+'" style="'
-            +colStyle+';display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;border:2px solid '+(active?'var(--blue)':'var(--border)')+';background:'+(active?'var(--blue)':'#fff')+';color:'+(active?'#fff':'var(--navy)')+';transition:all 0.15s;text-align:center;line-height:1.2;min-height:52px;box-sizing:border-box"><span style="font-size:15px">'+s.icon+'</span>'+s.label+'</button>';
+            +colStyle+';display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;border:2px solid '+(active?borderActive:borderNormal)+';background:'+(active?bgActive:bgNormal)+';color:'+(active?'#fff':colorNormal)+';transition:all 0.15s;text-align:center;line-height:1.2;min-height:52px;box-sizing:border-box"><span style="font-size:15px">'+s.icon+'</span>'+s.label+'</button>';
         }).join('')
       +'</div>'
-    : subPastas.map(s=>{
-        const active=filterAvaliacaoSub===s.id;
-        return '<button class="aval-sub-btn" data-sub="'+s.id+'" style="display:flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid '+(active?'var(--blue)':'var(--border)')+';background:'+(active?'var(--blue)':'#fff')+';color:'+(active?'#fff':'var(--navy)')+';transition:all 0.15s"><span style="font-size:18px">'+s.icon+'</span>'+s.label+'</button>';
-      }).join('');
+    : (()=>{
+        // Desktop: botões principais ocupam a largura toda, FICHA AA separado à direita
+        const mainBtns=subPastasMain.map(s=>{
+          const active=filterAvaliacaoSub===s.id;
+          return '<button class="aval-sub-btn" data-sub="'+s.id+'" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid '+(active?'var(--blue)':'var(--border)')+';background:'+(active?'var(--blue)':'#fff')+';color:'+(active?'#fff':'var(--navy)')+';transition:all 0.15s"><span style="font-size:18px">'+s.icon+'</span>'+s.label+'</button>';
+        }).join('');
+        const aActive=filterAvaliacaoSub==='fichaaa';
+        const fichaBtn=subPastaFichaAA?'<button class="aval-sub-btn" data-sub="fichaaa" style="display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid '+(aActive?'#7c3aed':'#c4b5fd')+';background:'+(aActive?'#7c3aed':'#f5f3ff')+';color:'+(aActive?'#fff':'#6d28d9')+';transition:all 0.15s;white-space:nowrap"><span style="font-size:18px">'+subPastaFichaAA.icon+'</span>'+subPastaFichaAA.label+'</button>':'';
+        return '<div style="display:flex;align-items:center;gap:8px;width:100%">'+mainBtns+(fichaBtn?'<div style="width:1px;background:var(--border);height:32px;flex-shrink:0"></div>'+fichaBtn:'')+'</div>';
+      })();
 
   // 1º SEMESTRE A.M. é generalista — não precisa de turma selecionada
   if(filterAvaliacaoSub==='sem1am'){
     return '<div>'
       +'<div style="position:sticky;top:0;z-index:50;background:#f0f2f5;padding-bottom:10px;margin-bottom:0;overflow:visible">'
       +'<div class="filter-bar" style="padding-top:4px"><div class="section-title" style="margin:0">Avaliação</div></div>'
-      +'<div style="display:flex;gap:8px;margin-bottom:0;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--border);overflow:visible">'+btnHtml+'</div>'
+      +'<div style="padding-bottom:10px;border-bottom:1px solid var(--border);overflow:visible">'+btnHtml+'</div>'
       +'</div>'
       +renderSem1AM()
       +'</div>';
@@ -973,7 +987,7 @@ function renderAvaliacao(){
       +'<div style="position:sticky;top:0;z-index:50;background:#f0f2f5;padding-bottom:10px;margin-bottom:0;overflow:visible">'
       +'<div class="filter-bar" style="padding-top:4px"><div class="section-title" style="margin:0">Avaliação</div>'
       +'<select class="filter-select" id="filterAvalTurmaS" style="min-width:180px">'+turmasOptsAA+'</select></div>'
-      +'<div style="display:flex;gap:8px;margin-bottom:0;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--border);overflow:visible">'+btnHtml+'</div>'
+      +'<div style="padding-bottom:10px;border-bottom:1px solid var(--border);overflow:visible">'+btnHtml+'</div>'
       +'</div>'
       +(turmaAA ? renderFichaAA(turmaAA) : '<div class="empty-msg">Seleciona uma turma.</div>')
       +'</div>';
@@ -989,7 +1003,7 @@ function renderAvaliacao(){
     +'<div style="position:sticky;top:0;z-index:50;background:#f0f2f5;padding-bottom:10px;margin-bottom:0;overflow:visible">'
     +'<div class="filter-bar" style="padding-top:4px"><div class="section-title" style="margin:0">Avaliação</div>'
     +'<select class="filter-select" id="filterAvalTurmaS" style="min-width:180px">'+turmasOpts+'</select></div>'
-    +(turma?('<div style="display:flex;gap:8px;margin-bottom:0;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--border);overflow:visible">'+btnHtml+'</div>'):'') 
+    +(turma?('<div style="padding-bottom:10px;border-bottom:1px solid var(--border);overflow:visible">'+btnHtml+'</div>'):'')
     +'</div>'
     +subHtml
     +'</div>';
@@ -4704,6 +4718,16 @@ function attachEvents(){
 
   // Avaliação FITESCOLA em tempo real — lê género e idade directamente da linha da tabela
   document.querySelectorAll('.fite-input').forEach(el=>{
+    // Navegação Enter → célula de baixo (mesmo teste, aluno seguinte)
+    el.addEventListener('keydown', e=>{
+      if(e.key==='Enter'){
+        e.preventDefault();
+        const testeId=el.dataset.teste;
+        const allInputs=[...document.querySelectorAll('.fite-input[data-teste="'+testeId+'"]')];
+        const idx=allInputs.indexOf(el);
+        if(idx>=0 && idx<allInputs.length-1) allInputs[idx+1].focus();
+      }
+    });
     el.addEventListener('input',()=>{
       const testeId=el.dataset.teste;
       const val=el.value.trim();
