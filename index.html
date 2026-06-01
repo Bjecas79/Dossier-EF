@@ -1318,10 +1318,10 @@ function renderFichaAA(turma){
     return `<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:7px 10px;font-size:13px;font-weight:600;color:var(--navy);border:1px solid var(--border)">${esc(nome)}</td>
       <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f8faff">
-        ${f1?`<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${escJ(JSON.stringify(f1))}','${escJ(nome)}',1)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota1}</small>`:'<span style="color:#ccc;font-size:11px">Pendente</span>'}
+        ${(()=>{ if(!f1) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f1); return `<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',1)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota1}</small>`; })()}
       </td>
       <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f0fdf8">
-        ${f2?`<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${escJ(JSON.stringify(f2))}','${escJ(nome)}',2)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota2}</small>`:'<span style="color:#ccc;font-size:11px">Pendente</span>'}
+        ${(()=>{ if(!f2) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f2); return `<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',2)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota2}</small>`; })()}
       </td>
     </tr>`;
   }).join('');
@@ -1423,10 +1423,10 @@ async function carregarLinksCurtos(turmaId, userId, anoLetivo){
           return `<tr style="border-bottom:1px solid var(--border)">
             <td style="padding:7px 10px;font-size:13px;font-weight:600;color:var(--navy);border:1px solid var(--border)">${esc(nome)}</td>
             <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f8faff">
-              ${f1?`<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${escJ(JSON.stringify(f1))}','${escJ(nome)}',1)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota1}</small>`:'<span style="color:#ccc;font-size:11px">Pendente</span>'}
+              ${(()=>{ if(!f1) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f1); return `<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',1)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota1}</small>`; })()}
             </td>
             <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f0fdf8">
-              ${f2?`<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${escJ(JSON.stringify(f2))}','${escJ(nome)}',2)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota2}</small>`:'<span style="color:#ccc;font-size:11px">Pendente</span>'}
+              ${(()=>{ if(!f2) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f2); return `<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',2)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota2}</small>`; })()}
             </td>
           </tr>`;
         }).join('');
@@ -1492,8 +1492,20 @@ async function sincronizarFichas(turmaId, sem){
   }
 }
 
-function verFichaAluno(dadosJson, nome, sem){
-  const row = typeof dadosJson === 'string' ? JSON.parse(dadosJson) : dadosJson;
+// Map global para guardar dados das fichas sem passar JSON em atributos HTML
+const _fichaAAStore = new Map();
+let _fichaAAStoreIdx = 0;
+function _storeFicha(obj){ const k = 'f'+(++_fichaAAStoreIdx); _fichaAAStore.set(k,obj); return k; }
+
+function verFichaAluno(keyOrJson, nome, sem){
+  // Aceita chave do Map (_fichaAAStore) ou JSON legacy
+  let row;
+  if(typeof keyOrJson === 'string' && _fichaAAStore.has(keyOrJson)){
+    row = _fichaAAStore.get(keyOrJson);
+  } else {
+    try { row = typeof keyOrJson === 'string' ? JSON.parse(keyOrJson) : keyOrJson; }
+    catch(e){ console.error('verFichaAluno: JSON inválido', e); return; }
+  }
   // row pode ser o objecto completo da linha supabase {nome_aluno, nota_aa, dados, updated_at}
   // ou diretamente os dados da ficha
   const d = row.dados ? (typeof row.dados === 'string' ? JSON.parse(row.dados) : row.dados) : row;
