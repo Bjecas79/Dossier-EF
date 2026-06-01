@@ -958,14 +958,19 @@ function renderAvaliacao(){
         }).join('')
       +'</div>'
     : (()=>{
-        // Desktop: botões principais ocupam a largura toda, FICHA AA separado à direita
+        // Desktop: botões principais com altura uniforme + FICHA AA à direita com altura dupla
+        const aActive=filterAvaliacaoSub==='fichaaa';
         const mainBtns=subPastasMain.map(s=>{
           const active=filterAvaliacaoSub===s.id;
-          return '<button class="aval-sub-btn" data-sub="'+s.id+'" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid '+(active?'var(--blue)':'var(--border)')+';background:'+(active?'var(--blue)':'#fff')+';color:'+(active?'#fff':'var(--navy)')+';transition:all 0.15s"><span style="font-size:18px">'+s.icon+'</span>'+s.label+'</button>';
+          return '<button class="aval-sub-btn" data-sub="'+s.id+'" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 12px;height:44px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid '+(active?'var(--blue)':'var(--border)')+';background:'+(active?'var(--blue)':'#fff')+';color:'+(active?'#fff':'var(--navy)')+';transition:all 0.15s;white-space:nowrap"><span style="font-size:18px">'+s.icon+'</span>'+s.label+'</button>';
         }).join('');
-        const aActive=filterAvaliacaoSub==='fichaaa';
-        const fichaBtn=subPastaFichaAA?'<button class="aval-sub-btn" data-sub="fichaaa" style="display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid '+(aActive?'#7c3aed':'#c4b5fd')+';background:'+(aActive?'#7c3aed':'#f5f3ff')+';color:'+(aActive?'#fff':'#6d28d9')+';transition:all 0.15s;white-space:nowrap"><span style="font-size:18px">'+subPastaFichaAA.icon+'</span>'+subPastaFichaAA.label+'</button>':'';
-        return '<div style="display:flex;align-items:center;gap:8px;width:100%">'+mainBtns+(fichaBtn?'<div style="width:1px;background:var(--border);height:32px;flex-shrink:0"></div>'+fichaBtn:'')+'</div>';
+        const fichaBtn=subPastaFichaAA
+          ?'<button class="aval-sub-btn" data-sub="fichaaa" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0 20px;width:120px;flex-shrink:0;align-self:stretch;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid '+(aActive?'#7c3aed':'#c4b5fd')+';background:'+(aActive?'#7c3aed':'#f5f3ff')+';color:'+(aActive?'#fff':'#6d28d9')+';transition:all 0.15s"><span style="font-size:22px">'+subPastaFichaAA.icon+'</span>'+subPastaFichaAA.label+'</button>'
+          :'';
+        return '<div style="display:flex;align-items:stretch;gap:8px;width:100%">'
+          +'<div style="flex:1;display:flex;align-items:center;gap:8px;">'+mainBtns+'</div>'
+          +(fichaBtn?'<div style="width:1px;background:var(--border);flex-shrink:0"></div>'+fichaBtn:'')
+          +'</div>';
       })();
 
   // 1º SEMESTRE A.M. é generalista — não precisa de turma selecionada
@@ -998,6 +1003,32 @@ function renderAvaliacao(){
   if(!S.turmas.length) return '<div><div class="section-title">Avaliação</div><div class="empty-msg">Crie pelo menos uma turma no Painel para registar avaliações.</div></div>';
 
   const subHtml=turma?renderAvaliacaoSub(turma):'';
+
+  // No desktop, separar o botão Ficha AA para o colocar em altura dupla
+  const aActiveFinal=filterAvaliacaoSub==='fichaaa';
+  const fichaBtnFinal=!mob&&subPastaFichaAA
+    ?'<div style="width:1px;background:var(--border);flex-shrink:0;align-self:stretch"></div>'
+     +'<button class="aval-sub-btn" data-sub="fichaaa" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0 20px;width:120px;flex-shrink:0;align-self:stretch;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid '+(aActiveFinal?'#7c3aed':'#c4b5fd')+';background:'+(aActiveFinal?'#7c3aed':'#f5f3ff')+';color:'+(aActiveFinal?'#fff':'#6d28d9')+';transition:all 0.15s"><span style="font-size:22px">'+subPastaFichaAA.icon+'</span>'+subPastaFichaAA.label+'</button>'
+    :'';
+
+  if(!mob){
+    // Desktop: wrapper único com flex — esquerda: 2 linhas (select + botões); direita: Ficha AA com altura total
+    const mainBtnsFinal=subPastasMain.map(s=>{
+      const active=filterAvaliacaoSub===s.id;
+      return '<button class="aval-sub-btn" data-sub="'+s.id+'" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 12px;height:44px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid '+(active?'var(--blue)':'var(--border)')+';background:'+(active?'var(--blue)':'#fff')+';color:'+(active?'#fff':'var(--navy)')+';transition:all 0.15s;white-space:nowrap"><span style="font-size:18px">'+s.icon+'</span>'+s.label+'</button>';
+    }).join('');
+    const stickyDesktop='<div style="position:sticky;top:0;z-index:50;background:#f0f2f5;padding-bottom:10px;margin-bottom:0;overflow:visible">'
+      +'<div style="display:flex;align-items:stretch;gap:8px;padding-top:4px">'
+      +'<div style="flex:1;display:flex;flex-direction:column;gap:8px">'
+      +'<div style="display:flex;align-items:center;gap:12px"><div class="section-title" style="margin:0">Avaliação</div>'
+      +'<select class="filter-select" id="filterAvalTurmaS" style="min-width:180px">'+turmasOpts+'</select></div>'
+      +(turma?('<div style="display:flex;align-items:center;gap:8px;padding-bottom:10px;border-bottom:1px solid var(--border)">'+mainBtnsFinal+'</div>'):'')
+      +'</div>'
+      +fichaBtnFinal
+      +'</div>'
+      +'</div>';
+    return '<div>'+stickyDesktop+subHtml+'</div>';
+  }
 
   return '<div>'
     +'<div style="position:sticky;top:0;z-index:50;background:#f0f2f5;padding-bottom:10px;margin-bottom:0;overflow:visible">'
@@ -2713,54 +2744,43 @@ function renderResumoAnual(){
   });
 
   const nTurmas = cols.length;
-  const maxAlunos = Math.max(...cols.map(c => c.alunos.length), 0);
+  const maxAlunos = cols.reduce((m,c)=>Math.max(m,c.alunos.length),0);
 
-  const tableHtml = cols.map(({t,alunos,notas1,notas2,med1,med2})=>{
-    const rows = alunos.map((nome,i)=>{
+  // Cabeçalho — uma célula por turma (colspan 3: nome | 1S | 2S), mais espaçador entre turmas
+  const theadCols = cols.map(({t,alunos})=>`
+    <th colspan="2" style="padding:3px 2px;text-align:center;font-size:10px;color:#cbd5e1;font-weight:600;background:#1e3a5f;border-left:3px solid #0f172a">1S</th>
+    <th style="padding:3px 2px;text-align:center;font-size:10px;color:#cbd5e1;font-weight:600;background:#1e3a5f">2S</th>
+  `).join('');
+
+  const theadNames = cols.map(({t,alunos})=>`
+    <th colspan="3" style="padding:5px 6px;text-align:center;background:var(--blue);color:#fff;font-size:11px;font-weight:800;border-left:3px solid #0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0">
+      ${esc(t.nome)} <span style="font-weight:400;opacity:0.75;font-size:10px">(${alunos.length} al.)</span>
+    </th>
+  `).join('');
+
+  // Linhas de dados — para cada linha i até maxAlunos
+  const tbodyRows = Array.from({length: maxAlunos}, (_,i)=>{
+    const bg = i%2===0?'var(--gray2)':'#fff';
+    const cells = cols.map(({alunos,notas1,notas2})=>{
+      const nome = alunos[i];
+      if(!nome) return `<td colspan="3" style="padding:3px 5px;background:${bg};border-bottom:1px solid var(--border);border-left:3px solid #e2e8f0"></td>`;
       const n1=notas1[nome]; const n2=notas2[nome];
       const v1=n1!==undefined&&n1!==''&&n1!==null?n1:'—';
       const v2=n2!==undefined&&n2!==''&&n2!==null?n2:'—';
-      return `<tr style="background:${i%2===0?'var(--gray2)':'#fff'}">
-        <td style="padding:3px 5px;font-size:11px;color:var(--navy);border-bottom:1px solid var(--border)">${esc(nome)}</td>
+      return `
+        <td style="padding:3px 5px;font-size:11px;color:var(--navy);border-bottom:1px solid var(--border);background:${bg};border-left:3px solid #e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0">${esc(nome)}</td>
         <td style="padding:3px 4px;text-align:center;font-size:11px;font-weight:700;color:${notaColor(v1)};background:${notaBg(v1)};border-bottom:1px solid var(--border);white-space:nowrap">${v1}</td>
-        <td style="padding:3px 4px;text-align:center;font-size:11px;font-weight:700;color:${notaColor(v2)};background:${notaBg(v2)};border-bottom:1px solid var(--border);white-space:nowrap">${v2}</td>
-      </tr>`;
+        <td style="padding:3px 4px;text-align:center;font-size:11px;font-weight:700;color:${notaColor(v2)};background:${notaBg(v2)};border-bottom:1px solid var(--border);white-space:nowrap">${v2}</td>`;
     }).join('');
-    const padding = maxAlunos - alunos.length;
-    const paddingRows = Array.from({length: padding}, (_,i)=>{
-      const bg = (alunos.length+i)%2===0?'var(--gray2)':'#fff';
-      return `<tr style="background:${bg}"><td style="padding:3px 5px;border-bottom:1px solid var(--border)">&nbsp;</td><td style="border-bottom:1px solid var(--border)"></td><td style="border-bottom:1px solid var(--border)"></td></tr>`;
-    }).join('');
-
-    return `<div style="min-width:0">
-      <div style="background:var(--blue);color:#fff;padding:5px 6px;border-radius:6px 6px 0 0;text-align:center">
-        <div style="font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.nome)}</div>
-        <div style="font-size:10px;opacity:0.8">${alunos.length} al.</div>
-      </div>
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
-        <colgroup>
-          <col style="width:auto">
-          <col style="width:28px">
-          <col style="width:28px">
-        </colgroup>
-        <thead>
-          <tr style="background:#1e3a5f">
-            <th style="padding:3px 5px;text-align:left;font-size:10px;color:#cbd5e1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Aluno</th>
-            <th style="padding:3px 2px;text-align:center;font-size:10px;color:#cbd5e1;font-weight:600">1S</th>
-            <th style="padding:3px 2px;text-align:center;font-size:10px;color:#cbd5e1;font-weight:600">2S</th>
-          </tr>
-        </thead>
-        <tbody>${rows}${paddingRows}</tbody>
-        <tfoot>
-          <tr style="background:#e0f2fe">
-            <td style="padding:3px 5px;font-size:10px;font-weight:700;color:#0369a1;white-space:nowrap">Média</td>
-            <td style="padding:3px 2px;text-align:center;font-size:11px;font-weight:800;color:${notaColor(med1)}">${med1!==null?med1:'—'}</td>
-            <td style="padding:3px 2px;text-align:center;font-size:11px;font-weight:800;color:${notaColor(med2)}">${med2!==null?med2:'—'}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>`;
+    return `<tr>${cells}</tr>`;
   }).join('');
+
+  // Linha de Médias
+  const tfootCells = cols.map(({med1,med2})=>`
+    <td style="padding:3px 5px;font-size:10px;font-weight:700;color:#0369a1;background:#e0f2fe;border-left:3px solid #0f172a;white-space:nowrap">Média</td>
+    <td style="padding:3px 2px;text-align:center;font-size:11px;font-weight:800;color:${notaColor(med1)};background:#e0f2fe">${med1!==null?med1:'—'}</td>
+    <td style="padding:3px 2px;text-align:center;font-size:11px;font-weight:800;color:${notaColor(med2)};background:#e0f2fe">${med2!==null?med2:'—'}</td>
+  `).join('');
 
   return `<div class="card" style="margin-bottom:20px">
     <div style="font-size:14px;font-weight:800;color:var(--navy);margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -2768,9 +2788,14 @@ function renderResumoAnual(){
       <span style="font-size:11px;font-weight:500;color:var(--gray);background:var(--gray2);padding:2px 8px;border-radius:12px">Notas finais por turma</span>
     </div>
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px">
-    <div style="display:grid;grid-template-columns:repeat(${nTurmas},minmax(110px,1fr));gap:8px;min-width:${nTurmas*118}px">
-      ${tableHtml}
-    </div>
+      <table style="border-collapse:collapse;width:100%;table-layout:fixed;min-width:${nTurmas*160}px">
+        <thead>
+          <tr>${theadNames}</tr>
+          <tr>${theadCols}</tr>
+        </thead>
+        <tbody>${tbodyRows}</tbody>
+        <tfoot><tr>${tfootCells}</tr></tfoot>
+      </table>
     </div>
     <div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap">
       ${[{c:'#f0fdf4',tc:'#16a34a',l:'≥ 18'},
