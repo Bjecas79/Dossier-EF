@@ -1406,6 +1406,8 @@ async function carregarLinksCurtos(turmaId, userId, anoLetivo){
         if(f.nota_aa!==null&&f.nota_aa!==undefined){
           if(!S.avaliacao[avalKey].autoAval) S.avaliacao[avalKey].autoAval={};
           S.avaliacao[avalKey].autoAval[f.nome_aluno]=f.nota_aa;
+          if(!S.avaliacao[avalKey].autoAvaliacao) S.avaliacao[avalKey].autoAvaliacao={};
+          S.avaliacao[avalKey].autoAvaliacao[f.nome_aluno]=f.nota_aa;
         }
       });
       // Atualizar apenas o tbody da tabela sem re-renderizar tudo
@@ -1483,6 +1485,8 @@ async function sincronizarFichas(turmaId, sem){
       if(f.nota_aa!==null&&f.nota_aa!==undefined){
         if(!S.avaliacao[avalKey].autoAval) S.avaliacao[avalKey].autoAval={};
         S.avaliacao[avalKey].autoAval[f.nome_aluno]=f.nota_aa;
+        if(!S.avaliacao[avalKey].autoAvaliacao) S.avaliacao[avalKey].autoAvaliacao={};
+        S.avaliacao[avalKey].autoAvaliacao[f.nome_aluno]=f.nota_aa;
       }
     });
     save();render();
@@ -2709,6 +2713,7 @@ function renderResumoAnual(){
   });
 
   const nTurmas = cols.length;
+  const maxAlunos = Math.max(...cols.map(c => c.alunos.length), 0);
 
   const tableHtml = cols.map(({t,alunos,notas1,notas2,med1,med2})=>{
     const rows = alunos.map((nome,i)=>{
@@ -2720,6 +2725,11 @@ function renderResumoAnual(){
         <td style="padding:3px 4px;text-align:center;font-size:11px;font-weight:700;color:${notaColor(v1)};background:${notaBg(v1)};border-bottom:1px solid var(--border);white-space:nowrap">${v1}</td>
         <td style="padding:3px 4px;text-align:center;font-size:11px;font-weight:700;color:${notaColor(v2)};background:${notaBg(v2)};border-bottom:1px solid var(--border);white-space:nowrap">${v2}</td>
       </tr>`;
+    }).join('');
+    const padding = maxAlunos - alunos.length;
+    const paddingRows = Array.from({length: padding}, (_,i)=>{
+      const bg = (alunos.length+i)%2===0?'var(--gray2)':'#fff';
+      return `<tr style="background:${bg}"><td style="padding:3px 5px;border-bottom:1px solid var(--border)">&nbsp;</td><td style="border-bottom:1px solid var(--border)"></td><td style="border-bottom:1px solid var(--border)"></td></tr>`;
     }).join('');
 
     return `<div style="min-width:0">
@@ -2740,7 +2750,7 @@ function renderResumoAnual(){
             <th style="padding:3px 2px;text-align:center;font-size:10px;color:#cbd5e1;font-weight:600">2S</th>
           </tr>
         </thead>
-        <tbody>${rows}</tbody>
+        <tbody>${rows}${paddingRows}</tbody>
         <tfoot>
           <tr style="background:#e0f2fe">
             <td style="padding:3px 5px;font-size:10px;font-weight:700;color:#0369a1;white-space:nowrap">Média</td>
