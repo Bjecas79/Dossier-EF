@@ -2081,14 +2081,14 @@ function renderAvaliacaoSub(turma){
   const thL='style="padding:8px 10px;text-align:left;color:#fff;font-weight:600;border:1px solid rgba(255,255,255,0.15);position:sticky;top:0;z-index:4"';
 
   // Títulos editáveis das 12 colunas de Atividades Físicas
-  if(!dados.atividadesTitulos) dados.atividadesTitulos=Array(12).fill('');
+  if(!dados.atividadesTitulos||dados.atividadesTitulos.length<14){ const _def=['ANDEBOL','BASQUETEBOL','FUTEBOL','VOLEIBOL','GINÁSTICA','DANÇA','ATLETISMO','CORFEBOL','FRISBEE','HÓQUEI','ORIENTAÇÃO','RAQUETES','RUGBY','SOFTBOL']; dados.atividadesTitulos=Array(14).fill('').map((_,i)=>dados.atividadesTitulos?.[i]||_def[i]||''); }
   const ativTitulos=dados.atividadesTitulos;
 
   const thead=isSem1?`
     <tr style="background:var(--navy)">
       <th rowspan="${isSem2?4:3}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:600;border:1px solid rgba(255,255,255,0.15);width:32px;position:sticky;left:0;top:0;z-index:6;background:var(--navy)">#</th>
       <th rowspan="${isSem2?4:3}" style="padding:8px 10px;text-align:left;color:#fff;font-weight:600;border:1px solid rgba(255,255,255,0.15);min-width:90px;position:sticky;left:32px;top:0;z-index:6;background:var(--navy);box-shadow:2px 0 5px rgba(0,0,0,0.12)">Nome</th>
-      <th colspan="${isSem2?36:26}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:800;border:1px solid rgba(255,255,255,0.15);background:#7c2d12;letter-spacing:1px;font-size:13px;position:sticky;top:0;z-index:4">DOMÍNIO DOS CONHECIMENTOS E CAPACIDADES — 85%</th>
+      <th colspan="${isSem2?38:28}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:800;border:1px solid rgba(255,255,255,0.15);background:#7c2d12;letter-spacing:1px;font-size:13px;position:sticky;top:0;z-index:4">DOMÍNIO DOS CONHECIMENTOS E CAPACIDADES — 85%</th>
       <th colspan="${isSem2?9:4}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:800;border:1px solid rgba(255,255,255,0.15);background:#78350f;letter-spacing:1px;font-size:13px;position:sticky;top:0;z-index:4">DOMÍNIO ATITUDES E VALORES — 15%</th>
       <th colspan="3" style="padding:8px 6px;text-align:center;color:#e11d48;font-weight:800;border:2px solid rgba(225,29,72,0.5);background:#fff1f2;letter-spacing:1px;font-size:13px;position:sticky;top:0;z-index:4">CLASSIFICAÇÃO FINAL DO ${isSem2?'2º':'1º'} SEMESTRE</th>
       <th rowspan="${isSem2?4:3}" style="padding:0;border:none;background:#f0f2f5;min-width:16px;position:sticky;top:0;z-index:4"></th>
@@ -2097,7 +2097,7 @@ function renderAvaliacaoSub(turma){
     <!-- LINHA 2: blocos principais -->
     <tr style="background:var(--navy)">
       <th colspan="${isSem2?9:4}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:700;border:1px solid rgba(255,255,255,0.15);background:#1e3a5f;letter-spacing:0.5px;position:sticky;top:33px;z-index:4">APTIDÃO FÍSICA</th>
-      <th colspan="12" rowspan="${isSem2?2:1}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:700;border:1px solid rgba(255,255,255,0.15);background:#14532d;letter-spacing:0.5px;position:sticky;top:33px;z-index:4;vertical-align:middle">ATIVIDADES FÍSICAS</th>
+      <th colspan="14" rowspan="${isSem2?2:1}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:700;border:1px solid rgba(255,255,255,0.15);background:#14532d;letter-spacing:0.5px;position:sticky;top:33px;z-index:4;vertical-align:middle">ATIVIDADES FÍSICAS</th>
       <th colspan="${isSem2?8:5}" rowspan="${isSem2?2:1}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:700;border:1px solid rgba(255,255,255,0.15);background:#7c3aed;letter-spacing:0.5px;position:sticky;top:33px;z-index:4;vertical-align:middle">RESUMO</th>
       <th colspan="${isSem2?4:2}" rowspan="${isSem2?2:1}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:700;border:1px solid rgba(255,255,255,0.15);background:#b45309;letter-spacing:0.5px;position:sticky;top:33px;z-index:4;vertical-align:middle">CONHECIMENTOS</th>
       <th rowspan="${isSem2?3:2}" style="padding:8px 6px;text-align:center;color:#fff;font-weight:700;border:1px solid rgba(255,255,255,0.15);background:#0f4c3a;letter-spacing:0.3px;position:sticky;top:33px;z-index:4;min-width:80px">TOTAL PONTOS<br><small style="font-weight:400;opacity:0.85;font-size:10px">Conhecimentos<br>e Capacidades</small></th>
@@ -2251,7 +2251,7 @@ function renderAvaliacaoSub(turma){
         fit2sPontos=pontos2s||'';
         if(pontos||pontos2s) mediaPontos=Math.round(((pontos||0)+(pontos2s||0))/2*100)/100;
       }
-      const ativNotas=dados.ativNotas?.[nome]||Array(12).fill('');
+      const ativNotas=dados.ativNotas?.[nome]||Array(14).fill('');
       // Número de melhores matérias: sem2→7º=5, outros=6; sem1→7º=2, outros=3
       const nMelhores=isSem2?(turma.ano==='7º'?5:6):(turma.ano==='7º'?2:3);
       // Calcular M1..M6 (melhores notas das 12 atividades, conforme semestre/ano)
@@ -2308,7 +2308,7 @@ function renderAvaliacaoSub(turma){
         <td class="media-pontos-fit-cell" style="padding:5px 8px;border:1px solid var(--border);text-align:center;font-weight:800;font-size:15px;color:#fff;background:#163a2a">${mediaPontos||''}</td>
         `:''}
 
-        ${Array(12).fill(0).map((_,ci)=>`<td style="padding:3px 2px;border:1px solid var(--border);text-align:center;background:#f0fdf4">
+        ${Array(14).fill(0).map((_,ci)=>`<td style="padding:3px 2px;border:1px solid var(--border);text-align:center;background:#f0fdf4">
           <input type="number" min="0" max="3" step="0.5" class="ativ-nota" data-nome="${esc(nome)}" data-col="${ci}" value="${esc(String(ativNotas[ci]||''))}" placeholder="—"
             style="width:52px;text-align:center;border:1px solid #86efac;border-radius:4px;padding:3px 2px;font-size:11px;background:transparent;color:#14532d">
         </td>`).join('')}
@@ -2662,7 +2662,7 @@ function calcAvisos(incluirLidos=false){
       // Atividades — um aviso independente por coluna com título preenchido
       // Só gera aviso se o preenchimento já foi INICIADO (≥1 aluno com nota numérica válida)
       if(d.ativNotas&&d.atividadesTitulos){
-        for(let ci=0;ci<12;ci++){
+        for(let ci=0;ci<14;ci++){
           const titulo=d.atividadesTitulos[ci];
           if(!titulo) continue;
           // "Com nota" = valor numérico (string não vazia e parseFloat válido)
@@ -3162,7 +3162,7 @@ function exportAvaliacaoExcel(turma, semestre){
   const sem1Dados = S.avaliacao?.[sem1Key] || {};
   const basico = ['7º','8º','9º'].includes(turma.ano);
   const anoLetivo = parseInt((S.anoLetivo||'2025/2026').split('/')[0]);
-  const ativTitulos = dados.atividadesTitulos || Array(12).fill('');
+  const ativTitulos = dados.atividadesTitulos || ['ANDEBOL','BASQUETEBOL','FUTEBOL','VOLEIBOL','GINÁSTICA','DANÇA','ATLETISMO','CORFEBOL','FRISBEE','HÓQUEI','ORIENTAÇÃO','RAQUETES','RUGBY','SOFTBOL'];
   const nMelhores = isSem2 ? (turma.ano==='7º'?5:6) : (turma.ano==='7º'?2:3);
   const maxPtsAtiv = isSem2
     ? ({'7º':8,'8º':9.5,'9º':10.5,'10º':13.5,'11º':14,'12º':14.5}[turma.ano]||13.5)
@@ -3240,8 +3240,8 @@ function exportAvaliacaoExcel(turma, semestre){
     );
   }
 
-  // ATIVIDADES FÍSICAS (12 matérias)
-  for(let i=0;i<12;i++){
+  // ATIVIDADES FÍSICAS (14 matérias)
+  for(let i=0;i<14;i++){
     colDefs.push({h: ativTitulos[i]||`Matéria ${i+1}`, w:9, g:'ativ'});
   }
 
@@ -3418,7 +3418,7 @@ function exportAvaliacaoExcel(turma, semestre){
     }
 
     // Atividades Físicas
-    const ativNotas = dados.ativNotas?.[nome] || Array(12).fill('');
+    const ativNotas = dados.ativNotas?.[nome] || Array(14).fill('');
     const vals = ativNotas.map(v=>parseFloat(v)||0).filter(v=>v>0).sort((a,b)=>b-a);
     const mAll = [vals[0]||0,vals[1]||0,vals[2]||0,vals[3]||0,vals[4]||0,vals[5]||0];
     const mUsed = mAll.slice(0, nMelhores);
@@ -3472,7 +3472,7 @@ function exportAvaliacaoExcel(turma, semestre){
     const row = [num, nome];
     if(isSem2){ row.push(nPM1||'',nOK1||'',nAtl1||'',p1, nPM2||'',nOK2||'',nAtl2||'',p2, pMedia||''); }
     else       { row.push(nPM1||'',nOK1||'',nAtl1||'',p1); }
-    for(let ci=0;ci<12;ci++) row.push(ativNotas[ci]??'');
+    for(let ci=0;ci<14;ci++) row.push(ativNotas[ci]??'');
     for(let mi=0;mi<nMelhores;mi++) row.push(mUsed[mi]||'');
     row.push(total||'', pontosAtiv||'');
     if(isSem2){ row.push(conhecClassif1s, conhecClassif2s, mediaConhec, conhecPontos); }
@@ -4849,14 +4849,14 @@ function attachEvents(){
         S.avaliacao[key].resultados[nome][teste]=val===''?'':parseFloat(val);
       });
     } else {
-      if(!S.avaliacao[key]) S.avaliacao[key]={notas:{},obsAlunos:{},atividadesTitulos:Array(12).fill(''),ativNotas:{},obs:''};
-      const titulos=Array(12).fill('');
+      if(!S.avaliacao[key]) S.avaliacao[key]={notas:{},obsAlunos:{},atividadesTitulos:['ANDEBOL','BASQUETEBOL','FUTEBOL','VOLEIBOL','GINÁSTICA','DANÇA','ATLETISMO','CORFEBOL','FRISBEE','HÓQUEI','ORIENTAÇÃO','RAQUETES','RUGBY','SOFTBOL'],ativNotas:{},obs:''};
+      const titulos=Array(14).fill('');
       document.querySelectorAll('.ativ-titulo').forEach(el=>{ titulos[parseInt(el.dataset.idx)]=el.value; });
       S.avaliacao[key].atividadesTitulos=titulos;
       if(!S.avaliacao[key].ativNotas) S.avaliacao[key].ativNotas={};
       document.querySelectorAll('.ativ-nota').forEach(el=>{
         const nome=el.dataset.nome; const col=parseInt(el.dataset.col); const val=el.value.trim();
-        if(!S.avaliacao[key].ativNotas[nome]) S.avaliacao[key].ativNotas[nome]=Array(12).fill('');
+        if(!S.avaliacao[key].ativNotas[nome]) S.avaliacao[key].ativNotas[nome]=Array(14).fill('');
         S.avaliacao[key].ativNotas[nome][col]=val===''?'':parseFloat(val);
       });
       document.querySelectorAll('.aval-nota').forEach(el=>{
