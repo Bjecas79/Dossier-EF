@@ -2255,9 +2255,31 @@ function renderAvaliacaoSub(turma){
       // Número de melhores matérias: sem2→7º=5, outros=6; sem1→7º=2, outros=3
       const nMelhores=isSem2?(turma.ano==='7º'?5:6):(turma.ano==='7º'?2:3);
       // Calcular M1..M6 (melhores notas das 12 atividades, conforme semestre/ano)
-      const vals=ativNotas.map(v=>parseFloat(v)||0).filter(v=>v>0).sort((a,b)=>b-a);
-      const m1=vals[0]||0, m2=vals[1]||0, m3=nMelhores>=3?(vals[2]||0):0;
-      const m4=nMelhores>=4?(vals[3]||0):0, m5=nMelhores>=5?(vals[4]||0):0, m6=nMelhores>=6?(vals[5]||0):0;
+      // Separar grupos de colunas: cols1a4 (índices 0-3), col5Gin (índice 4), col6Dança (índice 5), cols6a14 (índices 5-13)
+      const vCols1a4=ativNotas.slice(0,4).map(v=>parseFloat(v)||0).filter(v=>v>0).sort((a,b)=>b-a);
+      const vCol5Gin=parseFloat(ativNotas[4])||0;
+      const vCol6Danca=parseFloat(ativNotas[5])||0;
+      const vCols6a14=ativNotas.slice(5,14).map(v=>parseFloat(v)||0).filter(v=>v>0).sort((a,b)=>b-a);
+      let m1=0,m2=0,m3=0,m4=0,m5=0,m6=0;
+      if(isSem2){
+        const ano=turma.ano;
+        if(ano==='7º'){
+          // M1=melhor cols1-4, M2=col5Gin, M3=melhor cols6-14, M4=2ªmelhor cols6-14, M5=3ªmelhor cols6-14
+          m1=vCols1a4[0]||0; m2=vCol5Gin; m3=vCols6a14[0]||0; m4=vCols6a14[1]||0; m5=vCols6a14[2]||0;
+        } else if(ano==='8º'){
+          // M1=melhor cols1-4, M2=col5Gin, M3=melhor cols6-14, M4=2ªmelhor, M5=3ªmelhor, M6=4ªmelhor
+          m1=vCols1a4[0]||0; m2=vCol5Gin; m3=vCols6a14[0]||0; m4=vCols6a14[1]||0; m5=vCols6a14[2]||0; m6=vCols6a14[3]||0;
+        } else if(ano==='9º'){
+          // M1=melhor cols1-4, M2=2ªmelhor cols1-4, M3=col5Gin, M4=col6Dança, M5=melhor cols6-14, M6=2ªmelhor cols6-14
+          m1=vCols1a4[0]||0; m2=vCols1a4[1]||0; m3=vCol5Gin; m4=vCol6Danca; m5=vCols6a14[0]||0; m6=vCols6a14[1]||0;
+        } else {
+          // 10º,11º,12º: M1=melhor cols1-4, M2=2ªmelhor cols1-4, M3=col5Gin, M4=col6Dança, M5=melhor cols6-14, M6=2ªmelhor cols6-14
+          m1=vCols1a4[0]||0; m2=vCols1a4[1]||0; m3=vCol5Gin; m4=vCol6Danca; m5=vCols6a14[0]||0; m6=vCols6a14[1]||0;
+        }
+      } else {
+        const vals=ativNotas.map(v=>parseFloat(v)||0).filter(v=>v>0).sort((a,b)=>b-a);
+        m1=vals[0]||0; m2=vals[1]||0; m3=nMelhores>=3?(vals[2]||0):0;
+      }
       const total=Math.round((m1+m2+m3+m4+m5+m6)*10)/10;
       const maxPtsAtiv2s={'7º':8,'8º':9.5,'9º':10.5,'10º':13.5,'11º':14,'12º':14.5};
       const maxPtsAtiv=isSem2?(maxPtsAtiv2s[turma.ano]||13.5):({'7º':4.5,'8º':5.5,'9º':7,'10º':8,'11º':8,'12º':8.5}[turma.ano]||8);
@@ -2314,8 +2336,8 @@ function renderAvaliacaoSub(turma){
         </td>`).join('')}
         <td class="resumo-cell" style="padding:5px 4px;border:1px solid var(--border);text-align:center;font-weight:700;font-size:13px;color:#7c3aed;background:#f5f3ff">${m1||''}</td>
         <td class="resumo-cell" style="padding:5px 4px;border:1px solid var(--border);text-align:center;font-weight:700;font-size:13px;color:#7c3aed;background:#f5f3ff">${m2||''}</td>
-        <td class="resumo-cell" style="padding:5px 4px;border:1px solid var(--border);text-align:center;font-weight:700;font-size:13px;color:${nMelhores>=3?'#7c3aed':'#cbd5e1'};background:${nMelhores>=3?'#f5f3ff':'#f1f5f9'};${nMelhores<3?'font-style:italic;':''}">
-          ${nMelhores>=3?(m3||''):'N/A'}
+        <td class="resumo-cell" style="padding:5px 4px;border:1px solid var(--border);text-align:center;font-weight:700;font-size:13px;color:${(isSem2||nMelhores>=3)?'#7c3aed':'#cbd5e1'};background:${(isSem2||nMelhores>=3)?'#f5f3ff':'#f1f5f9'};${(!isSem2&&nMelhores<3)?'font-style:italic;':''}">
+          ${(isSem2||nMelhores>=3)?(m3||''):'N/A'}
         </td>
         ${isSem2?`
         <td class="resumo-cell" style="padding:5px 4px;border:1px solid var(--border);text-align:center;font-weight:700;font-size:13px;color:#7c3aed;background:#f5f3ff">${m4||''}</td>
@@ -3419,8 +3441,26 @@ function exportAvaliacaoExcel(turma, semestre){
 
     // Atividades Físicas
     const ativNotas = dados.ativNotas?.[nome] || Array(14).fill('');
-    const vals = ativNotas.map(v=>parseFloat(v)||0).filter(v=>v>0).sort((a,b)=>b-a);
-    const mAll = [vals[0]||0,vals[1]||0,vals[2]||0,vals[3]||0,vals[4]||0,vals[5]||0];
+    const vCols1a4x=ativNotas.map((v,i)=>i<4?parseFloat(v)||0:0).filter(v=>v>0).sort((a,b)=>b-a);
+    const vCol5Ginx=parseFloat(ativNotas[4])||0;
+    const vCol6Dancax=parseFloat(ativNotas[5])||0;
+    const vCols6a14x=ativNotas.slice(5,14).map(v=>parseFloat(v)||0).filter(v=>v>0).sort((a,b)=>b-a);
+    let mAll;
+    if(isSem2){
+      const ano=turma.ano;
+      if(ano==='7º'){
+        mAll=[(vCols1a4x[0]||0),vCol5Ginx,(vCols6a14x[0]||0),(vCols6a14x[1]||0),(vCols6a14x[2]||0),0];
+      } else if(ano==='8º'){
+        mAll=[(vCols1a4x[0]||0),vCol5Ginx,(vCols6a14x[0]||0),(vCols6a14x[1]||0),(vCols6a14x[2]||0),(vCols6a14x[3]||0)];
+      } else if(ano==='9º'){
+        mAll=[(vCols1a4x[0]||0),(vCols1a4x[1]||0),vCol5Ginx,vCol6Dancax,(vCols6a14x[0]||0),(vCols6a14x[1]||0)];
+      } else {
+        mAll=[(vCols1a4x[0]||0),(vCols1a4x[1]||0),vCol5Ginx,vCol6Dancax,(vCols6a14x[0]||0),(vCols6a14x[1]||0)];
+      }
+    } else {
+      const vals = ativNotas.map(v=>parseFloat(v)||0).filter(v=>v>0).sort((a,b)=>b-a);
+      mAll = [vals[0]||0,vals[1]||0,vals[2]||0,vals[3]||0,vals[4]||0,vals[5]||0];
+    }
     const mUsed = mAll.slice(0, nMelhores);
     const total = Math.round(mUsed.reduce((s,v)=>s+v,0)*10)/10;
     const pontosAtiv = Math.min(maxPtsAtiv, total);
@@ -5032,9 +5072,26 @@ function attachEvents(){
     const isSem2Row=filterAvaliacaoSub==='sem2';
     const nMelhores=isSem2Row?(ano==='7º'?5:6):(ano==='7º'?2:3);
     const inputs=[...row.querySelectorAll('.ativ-nota')];
-    const vals=inputs.map(el=>parseFloat(el.value)||0).filter(v=>v>0).sort((a,b)=>b-a);
-    const m1=vals[0]||0, m2=vals[1]||0, m3=nMelhores>=3?(vals[2]||0):0;
-    const m4=nMelhores>=4?(vals[3]||0):0, m5=nMelhores>=5?(vals[4]||0):0, m6=nMelhores>=6?(vals[5]||0):0;
+    const rawVals=inputs.map(el=>parseFloat(el.value)||0);
+    const vCols1a4r=rawVals.slice(0,4).filter(v=>v>0).sort((a,b)=>b-a);
+    const vCol5Ginr=rawVals[4]||0;
+    const vCol6Dancar=rawVals[5]||0;
+    const vCols6a14r=rawVals.slice(5,14).filter(v=>v>0).sort((a,b)=>b-a);
+    let m1=0,m2=0,m3=0,m4=0,m5=0,m6=0;
+    if(isSem2Row){
+      if(ano==='7º'){
+        m1=vCols1a4r[0]||0; m2=vCol5Ginr; m3=vCols6a14r[0]||0; m4=vCols6a14r[1]||0; m5=vCols6a14r[2]||0;
+      } else if(ano==='8º'){
+        m1=vCols1a4r[0]||0; m2=vCol5Ginr; m3=vCols6a14r[0]||0; m4=vCols6a14r[1]||0; m5=vCols6a14r[2]||0; m6=vCols6a14r[3]||0;
+      } else if(ano==='9º'){
+        m1=vCols1a4r[0]||0; m2=vCols1a4r[1]||0; m3=vCol5Ginr; m4=vCol6Dancar; m5=vCols6a14r[0]||0; m6=vCols6a14r[1]||0;
+      } else {
+        m1=vCols1a4r[0]||0; m2=vCols1a4r[1]||0; m3=vCol5Ginr; m4=vCol6Dancar; m5=vCols6a14r[0]||0; m6=vCols6a14r[1]||0;
+      }
+    } else {
+      const vals=rawVals.filter(v=>v>0).sort((a,b)=>b-a);
+      m1=vals[0]||0; m2=vals[1]||0; m3=nMelhores>=3?(vals[2]||0):0;
+    }
     const total=Math.round((m1+m2+m3+m4+m5+m6)*10)/10;
     const maxPtsAtiv2s={'7º':8,'8º':9.5,'9º':10.5,'10º':13.5,'11º':14,'12º':14.5};
     const maxPtsAtiv=isSem2Row?(maxPtsAtiv2s[ano]||13.5):({'7º':4.5,'8º':5.5,'9º':7,'10º':8,'11º':8,'12º':8.5}[ano]||8);
@@ -5042,7 +5099,7 @@ function attachEvents(){
     const resumos=[...row.querySelectorAll('.resumo-cell')];
     if(resumos[0]) resumos[0].textContent=m1||'';
     if(resumos[1]) resumos[1].textContent=m2||'';
-    if(resumos[2]) resumos[2].textContent=nMelhores>=3?(m3||''):'N/A';
+    if(resumos[2]) resumos[2].textContent=isSem2Row?(m3||''):(nMelhores>=3?(m3||''):'N/A');
     if(isSem2Row){
       if(resumos[3]) resumos[3].textContent=m4||'';
       if(resumos[4]) resumos[4].textContent=m5||'';
