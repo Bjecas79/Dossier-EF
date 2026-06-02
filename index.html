@@ -1349,10 +1349,10 @@ function renderFichaAA(turma){
     return `<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:7px 10px;font-size:13px;font-weight:600;color:var(--navy);border:1px solid var(--border)">${esc(nome)}</td>
       <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f8faff">
-        ${(()=>{ if(!f1) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f1); return `<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',1)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota1}</small>`; })()}
+        ${(()=>{ if(!f1) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f1); return `<div style="display:flex;align-items:center;justify-content:center;gap:6px"><span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',1)">${esc(nome)}</span><button onclick="eliminarFichaAluno('${escJ(nome)}',1,${turma.id})" title="Eliminar submissão" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;flex-shrink:0" onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">🗑️</button></div><small style="color:#888;font-size:10px">${nota1}</small>`; })()}
       </td>
       <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f0fdf8">
-        ${(()=>{ if(!f2) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f2); return `<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',2)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota2}</small>`; })()}
+        ${(()=>{ if(!f2) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f2); return `<div style="display:flex;align-items:center;justify-content:center;gap:6px"><span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',2)">${esc(nome)}</span><button onclick="eliminarFichaAluno('${escJ(nome)}',2,${turma.id})" title="Eliminar submissão" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;flex-shrink:0" onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">🗑️</button></div><small style="color:#888;font-size:10px">${nota2}</small>`; })()}
       </td>
     </tr>`;
   }).join('');
@@ -1456,10 +1456,10 @@ async function carregarLinksCurtos(turmaId, userId, anoLetivo){
           return `<tr style="border-bottom:1px solid var(--border)">
             <td style="padding:7px 10px;font-size:13px;font-weight:600;color:var(--navy);border:1px solid var(--border)">${esc(nome)}</td>
             <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f8faff">
-              ${(()=>{ if(!f1) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f1); return `<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',1)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota1}</small>`; })()}
+              ${(()=>{ if(!f1) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f1); return `<div style="display:flex;align-items:center;justify-content:center;gap:6px"><span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',1)">${esc(nome)}</span><button onclick="eliminarFichaAluno('${escJ(nome)}',1,${turmaId})" title="Eliminar submissão" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;flex-shrink:0" onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">🗑️</button></div><small style="color:#888;font-size:10px">${nota1}</small>`; })()}
             </td>
             <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f0fdf8">
-              ${(()=>{ if(!f2) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f2); return `<span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',2)">${esc(nome)}</span><br><small style="color:#888;font-size:10px">${nota2}</small>`; })()}
+              ${(()=>{ if(!f2) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f2); return `<div style="display:flex;align-items:center;justify-content:center;gap:6px"><span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',2)">${esc(nome)}</span><button onclick="eliminarFichaAluno('${escJ(nome)}',2,${turmaId})" title="Eliminar submissão" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;flex-shrink:0" onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">🗑️</button></div><small style="color:#888;font-size:10px">${nota2}</small>`; })()}
             </td>
           </tr>`;
         }).join('');
@@ -1524,6 +1524,65 @@ async function sincronizarFichas(turmaId, sem){
     if(msgEl){msgEl.style.background='#dcfce7';msgEl.style.color='#16a34a';msgEl.style.border='1px solid #86efac';msgEl.textContent=`✅ ${(data||[]).length} ficha(s) sincronizada(s) para o ${sem}º Semestre!`;}
   }catch(e){
     if(msgEl){msgEl.style.background='#fee2e2';msgEl.style.color='#dc2626';msgEl.style.border='1px solid #fca5a5';msgEl.textContent='❌ Erro ao sincronizar: '+e.message;}
+  }
+}
+
+async function eliminarFichaAluno(nomeAluno, sem, turmaId){
+  if(!confirm(`Eliminar a submissão de "${nomeAluno}" do ${sem}º Semestre?\nEsta ação não pode ser desfeita.`)) return;
+  try{
+    const userId=currentUser&&currentUser.id;
+    if(!userId) throw new Error('Utilizador não autenticado');
+    const anoLetivo=S.anoLetivo||'';
+    // Eliminar da base de dados
+    const {error}=await supa.from('fichas_aa')
+      .delete()
+      .eq('user_id',userId)
+      .eq('turma_id',turmaId)
+      .eq('semestre',sem)
+      .eq('ano_letivo',anoLetivo)
+      .eq('nome_aluno',nomeAluno);
+    if(error) throw error;
+    // Remover do estado local
+    const key=`fichaaa_${turmaId}`;
+    const semKey=sem===1?'fichas1s':'fichas2s';
+    if(S.fichaAA&&S.fichaAA[key]&&S.fichaAA[key][semKey]){
+      delete S.fichaAA[key][semKey][nomeAluno];
+    }
+    // Remover nota de autoavaliação do estado de avaliação
+    const avalKey=`${turmaId}__sem${sem}`;
+    if(S.avaliacao&&S.avaliacao[avalKey]){
+      if(S.avaliacao[avalKey].autoAval) delete S.avaliacao[avalKey].autoAval[nomeAluno];
+      if(S.avaliacao[avalKey].autoAvaliacao) delete S.avaliacao[avalKey].autoAvaliacao[nomeAluno];
+    }
+    save();
+    // Atualizar apenas o tbody sem re-renderizar tudo
+    const tbody=document.querySelector('#fichaaa-table tbody');
+    if(tbody){
+      const fichasDados=S.fichaAA?.[key]||{fichas1s:{},fichas2s:{}};
+      const turmaObj=S.turmas.find(t=>t.id==turmaId);
+      const alunos=(turmaObj?.alunos||[]).map(a=>typeof a==='string'?{nome:a}:a);
+      tbody.innerHTML=alunos.map(a=>{
+        const nome=a.nome||a;
+        const f1=fichasDados.fichas1s?.[nome];
+        const f2=fichasDados.fichas2s?.[nome];
+        const nota1=f1?.nota_aa!==undefined&&f1?.nota_aa!==null?`<span style="font-weight:800;color:#16a34a">${f1.nota_aa}</span> val.`:'—';
+        const nota2=f2?.nota_aa!==undefined&&f2?.nota_aa!==null?`<span style="font-weight:800;color:#16a34a">${f2.nota_aa}</span> val.`:'—';
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 10px;font-size:13px;font-weight:600;color:var(--navy);border:1px solid var(--border)">${esc(nome)}</td>
+          <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f8faff">
+            ${(()=>{ if(!f1) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f1); return `<div style="display:flex;align-items:center;justify-content:center;gap:6px"><span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',1)">${esc(nome)}</span><button onclick="eliminarFichaAluno('${escJ(nome)}',1,${turmaId})" title="Eliminar submissão" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;flex-shrink:0" onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">🗑️</button></div><small style="color:#888;font-size:10px">${nota1}</small>`; })()}
+          </td>
+          <td style="padding:5px 8px;text-align:center;border:1px solid var(--border);background:#f0fdf8">
+            ${(()=>{ if(!f2) return '<span style="color:#ccc;font-size:11px">Pendente</span>'; const k=_storeFicha(f2); return `<div style="display:flex;align-items:center;justify-content:center;gap:6px"><span style="font-size:12px;cursor:pointer;color:#2563eb;text-decoration:underline" onclick="verFichaAluno('${k}','${escJ(nome)}',2)">${esc(nome)}</span><button onclick="eliminarFichaAluno('${escJ(nome)}',2,${turmaId})" title="Eliminar submissão" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:5px;padding:2px 6px;font-size:11px;cursor:pointer;line-height:1;flex-shrink:0" onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">🗑️</button></div><small style="color:#888;font-size:10px">${nota2}</small>`; })()}
+          </td>
+        </tr>`;
+      }).join('');
+    }
+    // Mostrar confirmação discreta
+    const msgEl=document.getElementById('fichaaa-sync-msg');
+    if(msgEl){msgEl.style.display='block';msgEl.style.background='#dcfce7';msgEl.style.color='#16a34a';msgEl.style.border='1px solid #86efac';msgEl.textContent=`✅ Submissão de "${nomeAluno}" (${sem}º Semestre) eliminada.`;setTimeout(()=>{if(msgEl)msgEl.style.display='none';},3000);}
+  }catch(e){
+    alert('Erro ao eliminar submissão: '+e.message);
   }
 }
 
