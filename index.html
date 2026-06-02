@@ -5226,23 +5226,48 @@ function attachEvents(){
   });
   document.getElementById('avalObs')?.addEventListener('input',()=>{ collectAndSaveAval(); });
 
-  // === Navegar para a célula de baixo ao pressionar Enter em qualquer input das tabelas de avaliação ===
+  // === Navegar para a célula de baixo ao pressionar Enter em qualquer input/select editável ===
   function avalEnterNavigation(){
     const AVAL_INPUTS = [
-      '.aid-nota-professor','.fit-pontos-override','.fit-pontos2s-override',
-      '.ativ-nota','.nota-professor','.auto-avaliacao',
-      '.am-campo','.am-auto-aval','.am-questao','.am-classif-final',
+      // Avaliação — tabela principal
+      '.ativ-nota', '.ativ-titulo',
+      '.nota-professor', '.nota-professor-auto',
+      '.auto-avaliacao', '.classif-final-sem',
+      '.conh-classif', '.conh-classif2s',
+      '.atit-responsab', '.atit-responsab2s',
+      '.atit-exigencia', '.atit-exigencia2s',
+      // Avaliação — painel AID (10º/11º/12º)
+      '.aid-nota-professor', '.aid-nota-professor-auto',
+      '.aid-responsab', '.aid-exigencia',
+      // Fitescola
+      '.fit-pontos-override', '.fit-pontos2s-override',
+      '.fite-input',
+      // Avaliação Mista (SEM1AM)
+      '.am-campo', '.am-auto-aval', '.am-questao', '.am-classif-final',
+      '.am-meta', '.am-nota-tarefas', '.am-nota-trab',
+      // Planificação
+      '.plan-input',
+      // Rotação
+      '.rot-cell',
+      // Sumários / Reuniões (textarea — desce para o próximo sumário)
+      '.sumario-textarea', '.reuniao-notas',
     ].join(',');
+
     document.querySelectorAll(AVAL_INPUTS).forEach(el=>{
       el.addEventListener('keydown', e=>{
         if(e.key !== 'Enter') return;
+        // Textareas: Enter normal dentro do texto; só navega com Ctrl+Enter ou Shift+Enter
+        if(el.tagName === 'TEXTAREA'){
+          if(!e.ctrlKey && !e.shiftKey) return;
+        }
         e.preventDefault();
-        // Encontrar todos os inputs visíveis da mesma coluna na tabela
-        const td = el.closest('td');
+        const td = el.closest('td,th');
         const tr = el.closest('tr');
         const table = el.closest('table');
         if(!td || !tr || !table) return;
-        const colIdx = [...tr.children].indexOf(td);
+        const colIdx = [...tr.parentElement.children].indexOf(tr) >= 0
+          ? [...tr.children].indexOf(td)
+          : [...tr.children].indexOf(td);
         // Percorrer as linhas seguintes à procura de um input na mesma coluna
         let nextRow = tr.nextElementSibling;
         while(nextRow){
@@ -5251,7 +5276,7 @@ function attachEvents(){
             const inp = targetTd.querySelector(AVAL_INPUTS);
             if(inp && !inp.disabled && !inp.readOnly){
               inp.focus();
-              inp.select();
+              if(inp.tagName !== 'TEXTAREA' && typeof inp.select === 'function') inp.select();
               return;
             }
           }
